@@ -19,7 +19,7 @@ Always "SuperDoc" (capital S, capital D). Never: Super Doc, Superdoc, superdoc, 
 
 ## Primary Color
 
-`#1355FF` (SuperDoc Blue). Full scale in `brand/tokens/primitive/colors.tokens.json`.
+`#1355FF` (SuperDoc Blue). Full scale in `packages/superdoc/src/assets/styles/tokens.css`.
 
 ## Typography
 
@@ -67,7 +67,7 @@ Never use: "AI-powered" (unless actual AI features), "revolutionary", "game-chan
 
 ## Design Tokens
 
-All color, spacing, and typography values are defined in `brand/tokens/`. Use semantic tokens from `brand/tokens/semantic/` — never hardcode hex values in components.
+All color, spacing, and typography values are defined in `packages/superdoc/src/assets/styles/tokens.css` as `--sd-*` CSS custom properties. Use semantic tokens (`--sd-action-primary`, `--sd-surface-card`) — never hardcode hex values in components.
 
 ## When Building UI
 
@@ -81,4 +81,4 @@ All color, spacing, and typography values are defined in `brand/tokens/`. Use se
 
 - `brand/brand-guidelines.md` — Full voice guide with dual registers, spectrum, and examples
 - `brand/visual-identity.md` — Logo, colors, typography, surfaces
-- `brand/tokens/` — W3C DTCG token files with descriptions
+- `packages/superdoc/src/assets/styles/tokens.css` — All design token values as CSS custom properties

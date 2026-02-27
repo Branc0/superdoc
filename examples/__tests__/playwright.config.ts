@@ -26,6 +26,7 @@ const useConcurrently = [
 // Port mapping — must match vite.config or server defaults
 const portMap: Record<string, number> = {
   cdn: 3000,
+  nuxt: 3000,
   'collaboration/hocuspocus': 3000,
 };
 const port = portMap[example] ?? 5173;

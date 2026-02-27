@@ -58,6 +58,7 @@
                 "pages": [
                   "getting-started/frameworks/react",
                   "getting-started/frameworks/vue",
+                  "getting-started/frameworks/nuxt",
                   "getting-started/frameworks/angular",
                   "getting-started/frameworks/vanilla-js"
                 ]

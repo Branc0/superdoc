@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        example: [react, vue, vanilla, cdn, angular]
+        example: [react, vue, vanilla, cdn, angular, nuxt]
     steps:
       - uses: actions/checkout@v6
 

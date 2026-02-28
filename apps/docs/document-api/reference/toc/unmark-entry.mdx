@@ -1,7 +1,7 @@
 ---
-title: toc.configure
-sidebarTitle: toc.configure
-description: Update the configuration switches of a table of contents.
+title: toc.unmarkEntry
+sidebarTitle: toc.unmarkEntry
+description: Remove a TC (table of contents entry) field from the document.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,10 +10,10 @@ description: Update the configuration switches of a table of contents.
 
 ## Summary
 
-Update the configuration switches of a table of contents.
+Remove a TC (table of contents entry) field from the document.
 
-- Operation ID: `toc.configure`
-- API member path: `editor.doc.toc.configure(...)`
+- Operation ID: `toc.unmarkEntry`
+- API member path: `editor.doc.toc.unmarkEntry(...)`
 - Mutates document: `yes`
 - Idempotency: `conditional`
 - Supports tracked mode: `no`
@@ -22,30 +22,22 @@ Update the configuration switches of a table of contents.
 
 ## Expected result
 
-Returns a TocMutationResult with the updated TOC address on success, or a failure code on no-op.
+Returns a TocEntryMutationResult with the removed entry address on success.
 
 ## Input fields
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `patch` | object | yes |  |
-| `target` | object(kind="block") | yes |  |
+| `target` | object(kind="inline") | yes |  |
 
 ### Example request
 
 ```json
 {
-  "patch": {
-    "outlineLevels": {
-      "from": 0,
-      "to": 10
-    },
-    "useAppliedOutlineLevel": true
-  },
   "target": {
-    "kind": "block",
+    "kind": "inline",
     "nodeId": "node-def456",
-    "nodeType": "tableOfContents"
+    "nodeType": "tableOfContentsEntry"
   }
 }
 ```
@@ -58,12 +50,12 @@ _No fields._
 
 ```json
 {
-  "success": true,
-  "toc": {
-    "kind": "block",
+  "entry": {
+    "kind": "inline",
     "nodeId": "node-def456",
-    "nodeType": "tableOfContents"
-  }
+    "nodeType": "tableOfContentsEntry"
+  },
+  "success": true
 }
 ```
 
@@ -71,7 +63,6 @@ _No fields._
 
 - `TARGET_NOT_FOUND`
 - `INVALID_TARGET`
-- `INVALID_INPUT`
 - `CAPABILITY_UNAVAILABLE`
 
 ## Non-applied failure codes
@@ -85,101 +76,17 @@ _No fields._
 {
   "additionalProperties": false,
   "properties": {
-    "patch": {
-      "additionalProperties": false,
-      "properties": {
-        "hideInWebView": {
-          "type": "boolean"
-        },
-        "hyperlinks": {
-          "type": "boolean"
-        },
-        "includePageNumbers": {
-          "type": "boolean"
-        },
-        "omitPageNumberLevels": {
-          "additionalProperties": false,
-          "properties": {
-            "from": {
-              "type": "integer"
-            },
-            "to": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "from",
-            "to"
-          ],
-          "type": "object"
-        },
-        "outlineLevels": {
-          "additionalProperties": false,
-          "properties": {
-            "from": {
-              "type": "integer"
-            },
-            "to": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "from",
-            "to"
-          ],
-          "type": "object"
-        },
-        "rightAlignPageNumbers": {
-          "type": "boolean"
-        },
-        "separator": {
-          "type": "string"
-        },
-        "tabLeader": {
-          "enum": [
-            "none",
-            "dot",
-            "hyphen",
-            "underscore",
-            "middleDot"
-          ]
-        },
-        "tcFieldIdentifier": {
-          "type": "string"
-        },
-        "tcFieldLevels": {
-          "additionalProperties": false,
-          "properties": {
-            "from": {
-              "type": "integer"
-            },
-            "to": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "from",
-            "to"
-          ],
-          "type": "object"
-        },
-        "useAppliedOutlineLevel": {
-          "type": "boolean"
-        }
-      },
-      "type": "object"
-    },
     "target": {
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "const": "block"
+          "const": "inline"
         },
         "nodeId": {
           "type": "string"
         },
         "nodeType": {
-          "const": "tableOfContents"
+          "const": "tableOfContentsEntry"
         }
       },
       "required": [
@@ -191,8 +98,7 @@ _No fields._
     }
   },
   "required": [
-    "target",
-    "patch"
+    "target"
   ],
   "type": "object"
 }
@@ -206,20 +112,17 @@ _No fields._
     {
       "additionalProperties": false,
       "properties": {
-        "success": {
-          "const": true
-        },
-        "toc": {
+        "entry": {
           "additionalProperties": false,
           "properties": {
             "kind": {
-              "const": "block"
+              "const": "inline"
             },
             "nodeId": {
               "type": "string"
             },
             "nodeType": {
-              "const": "tableOfContents"
+              "const": "tableOfContentsEntry"
             }
           },
           "required": [
@@ -228,11 +131,14 @@ _No fields._
             "nodeId"
           ],
           "type": "object"
+        },
+        "success": {
+          "const": true
         }
       },
       "required": [
         "success",
-        "toc"
+        "entry"
       ],
       "type": "object"
     },
@@ -249,7 +155,7 @@ _No fields._
                 "TARGET_NOT_FOUND",
                 "CAPABILITY_UNAVAILABLE",
                 "INVALID_INSERTION_CONTEXT",
-                "PAGE_NUMBERS_NOT_MATERIALIZED"
+                "INVALID_INPUT"
               ]
             },
             "details": {},
@@ -283,20 +189,17 @@ _No fields._
 {
   "additionalProperties": false,
   "properties": {
-    "success": {
-      "const": true
-    },
-    "toc": {
+    "entry": {
       "additionalProperties": false,
       "properties": {
         "kind": {
-          "const": "block"
+          "const": "inline"
         },
         "nodeId": {
           "type": "string"
         },
         "nodeType": {
-          "const": "tableOfContents"
+          "const": "tableOfContentsEntry"
         }
       },
       "required": [
@@ -305,11 +208,14 @@ _No fields._
         "nodeId"
       ],
       "type": "object"
+    },
+    "success": {
+      "const": true
     }
   },
   "required": [
     "success",
-    "toc"
+    "entry"
   ],
   "type": "object"
 }
@@ -331,7 +237,7 @@ _No fields._
             "TARGET_NOT_FOUND",
             "CAPABILITY_UNAVAILABLE",
             "INVALID_INSERTION_CONTEXT",
-            "PAGE_NUMBERS_NOT_MATERIALIZED"
+            "INVALID_INPUT"
           ]
         },
         "details": {},

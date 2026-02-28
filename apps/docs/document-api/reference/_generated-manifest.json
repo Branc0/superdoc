@@ -173,10 +173,15 @@
     "apps/docs/document-api/reference/tables/split.mdx",
     "apps/docs/document-api/reference/tables/unmerge-cells.mdx",
     "apps/docs/document-api/reference/toc/configure.mdx",
+    "apps/docs/document-api/reference/toc/edit-entry.mdx",
+    "apps/docs/document-api/reference/toc/get-entry.mdx",
     "apps/docs/document-api/reference/toc/get.mdx",
     "apps/docs/document-api/reference/toc/index.mdx",
+    "apps/docs/document-api/reference/toc/list-entries.mdx",
     "apps/docs/document-api/reference/toc/list.mdx",
+    "apps/docs/document-api/reference/toc/mark-entry.mdx",
     "apps/docs/document-api/reference/toc/remove.mdx",
+    "apps/docs/document-api/reference/toc/unmark-entry.mdx",
     "apps/docs/document-api/reference/toc/update.mdx",
     "apps/docs/document-api/reference/track-changes/decide.mdx",
     "apps/docs/document-api/reference/track-changes/get.mdx",
@@ -437,11 +442,22 @@
     {
       "aliasMemberPaths": [],
       "key": "toc",
-      "operationIds": ["toc.list", "toc.get", "toc.configure", "toc.update", "toc.remove"],
+      "operationIds": [
+        "toc.list",
+        "toc.get",
+        "toc.configure",
+        "toc.update",
+        "toc.remove",
+        "toc.markEntry",
+        "toc.unmarkEntry",
+        "toc.listEntries",
+        "toc.getEntry",
+        "toc.editEntry"
+      ],
       "pagePath": "apps/docs/document-api/reference/toc/index.mdx",
       "title": "Table of Contents"
     }
   ],
   "marker": "{/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}",
-  "sourceHash": "c5cf08d833b08c281a2bb18ec03caa6d95d20f69defe7897b30a9b903774705c"
+  "sourceHash": "510c744b41dd56592b2996c8f76683a2277c8a8025087fe107401a1277bf68ea"
 }

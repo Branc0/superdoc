@@ -263,6 +263,8 @@ export class PresentationEditor extends EventEmitter {
   }
 
   #options: PresentationEditorOptions;
+  /** Key used to register this instance in the static registry. Separate from options.documentId to avoid mutating caller's object. */
+  #registryKey: string | null = null;
   #editor: Editor;
   #visibleHost: HTMLElement;
   #viewportHost: HTMLElement;
@@ -612,10 +614,11 @@ export class PresentationEditor extends EventEmitter {
       this.#setupInputBridge();
       this.#syncTrackedChangesPreferences();
 
-      // Register this instance in the static registry
-      if (options.documentId) {
-        PresentationEditor.#instances.set(options.documentId, this);
-      }
+      // Register this instance in the static registry.
+      // Use a separate field to avoid mutating the caller's options object and to keep
+      // the registry key consistent with the overlay ID set earlier (line ~453).
+      this.#registryKey = options.documentId || `__anonymous_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      PresentationEditor.#instances.set(this.#registryKey, this);
 
       this.#pendingDocChange = true;
       this.#scheduleRerender();
@@ -2313,6 +2316,8 @@ export class PresentationEditor extends EventEmitter {
     }
     this.#layoutOptions.zoom = zoom;
     this.#applyZoom();
+    // Notify DomPainter so virtualization accounts for the CSS transform scale
+    this.#domPainter?.setZoom?.(zoom);
     this.emit('zoomChange', { zoom });
     this.#scheduleSelectionUpdate();
     // Trigger cursor updates on zoom changes
@@ -2398,8 +2403,9 @@ export class PresentationEditor extends EventEmitter {
     }
 
     // Unregister from static registry
-    if (this.#options?.documentId) {
-      PresentationEditor.#instances.delete(this.#options.documentId);
+    if (this.#registryKey) {
+      PresentationEditor.#instances.delete(this.#registryKey);
+      this.#registryKey = null;
     }
 
     // Clean up header/footer session manager
@@ -3551,17 +3557,30 @@ export class PresentationEditor extends EventEmitter {
 
   #ensurePainter(blocks: FlowBlock[], measures: Measure[]) {
     if (!this.#domPainter) {
+      // Ensure the virtualization gap matches the effective page gap so that
+      // DomPainter's spacer/offset math stays consistent with #applyZoom() height calculations.
+      const virtualization = this.#layoutOptions.virtualization;
+      const effectiveGap = this.#getEffectivePageGap();
+      const normalizedVirtualization = virtualization?.enabled
+        ? { ...virtualization, gap: virtualization.gap ?? effectiveGap }
+        : virtualization;
+
       this.#domPainter = createDomPainter({
         blocks,
         measures,
         layoutMode: this.#layoutOptions.layoutMode ?? 'vertical',
-        virtualization: this.#layoutOptions.virtualization,
+        virtualization: normalizedVirtualization,
         pageStyles: this.#layoutOptions.pageStyles,
         headerProvider: this.#headerFooterSession?.headerDecorationProvider,
         footerProvider: this.#headerFooterSession?.footerDecorationProvider,
         ruler: this.#layoutOptions.ruler,
-        pageGap: this.#layoutState.layout?.pageGap ?? this.#getEffectivePageGap(),
+        pageGap: this.#layoutState.layout?.pageGap ?? effectiveGap,
       });
+      // Pass the current zoom so virtualization accounts for the CSS transform scale
+      const currentZoom = this.#layoutOptions.zoom ?? 1;
+      if (currentZoom !== 1) {
+        this.#domPainter.setZoom(currentZoom);
+      }
     }
     return this.#domPainter;
   }
@@ -5037,10 +5056,16 @@ export class PresentationEditor extends EventEmitter {
       this.#viewportHost.style.width = `${scaledWidth}px`;
       this.#viewportHost.style.minWidth = `${scaledWidth}px`;
       this.#viewportHost.style.minHeight = `${scaledHeight}px`;
+      this.#viewportHost.style.height = '';
+      this.#viewportHost.style.overflow = '';
       this.#viewportHost.style.transform = '';
 
       this.#painterHost.style.width = `${totalWidth}px`;
       this.#painterHost.style.minHeight = `${maxHeight}px`;
+      // Negative margin compensates for the CSS box overflow from transform: scale().
+      // At zoom < 1 the unscaled CSS box is larger than the visual; this pulls the
+      // bottom edge up to match, without clipping overlays (e.g., cursor labels).
+      this.#painterHost.style.marginBottom = zoom !== 1 ? `${maxHeight * zoom - maxHeight}px` : '';
       this.#painterHost.style.transformOrigin = 'top left';
       this.#painterHost.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
 
@@ -5059,19 +5084,30 @@ export class PresentationEditor extends EventEmitter {
     //
     // This ensures the scroll container sees the correct scaled content size while
     // the transform provides visual scaling.
+    //
+    // CSS transform: scale() does NOT change the element's CSS box dimensions.
+    // At zoom < 1, painterHost's CSS box stays at the full unscaled height while its
+    // visual size is smaller. A negative margin-bottom on painterHost compensates for
+    // the difference, so the scroll container sees the correct scaled size without
+    // clipping overlays (e.g., collaboration cursor labels that extend above their caret).
     const scaledWidth = maxWidth * zoom;
     const scaledHeight = totalHeight * zoom;
 
-    // Set viewport to scaled dimensions for scroll container
     this.#viewportHost.style.width = `${scaledWidth}px`;
     this.#viewportHost.style.minWidth = `${scaledWidth}px`;
     this.#viewportHost.style.minHeight = `${scaledHeight}px`;
+    this.#viewportHost.style.height = '';
+    this.#viewportHost.style.overflow = '';
     this.#viewportHost.style.transform = '';
 
-    // Set painterHost to UNSCALED dimensions and apply transform
-    // This way: 816px * scale(1.5) = 1224px visual = matches viewport
+    // Set painterHost to UNSCALED dimensions and apply transform.
+    // Negative margin compensates for the CSS box overflow from transform: scale().
+    // At zoom < 1: totalHeight=74304 with scale(0.75) → visual 55728px but CSS box stays 74304px.
+    // marginBottom = totalHeight * zoom - totalHeight = 74304 * 0.75 - 74304 = -18576px
+    // This shrinks the layout contribution to match the visual size.
     this.#painterHost.style.width = `${maxWidth}px`;
     this.#painterHost.style.minHeight = `${totalHeight}px`;
+    this.#painterHost.style.marginBottom = zoom !== 1 ? `${totalHeight * zoom - totalHeight}px` : '';
     this.#painterHost.style.transformOrigin = 'top left';
     this.#painterHost.style.transform = zoom === 1 ? '' : `scale(${zoom})`;
 

@@ -121,18 +121,23 @@ test.describe('comment highlight survives mark changes', () => {
     await superdoc.waitForStable();
     await superdoc.assertCommentHighlightExists({ text: 'resilience test', commentId, timeoutMs: 20_000 });
 
-    // Apply bold, then italic, then underline to the same range
-    const pos = await superdoc.findTextPos('resilience test');
+    // Apply bold, then italic, then underline to the same range.
+    // Re-select between each mark because WebKit can disrupt DOM selection
+    // after Cmd+B/I/U shortcuts, and PM may re-index positions after marks.
+    let pos = await superdoc.findTextPos('resilience test');
     await superdoc.setTextSelection(pos, pos + 'resilience test'.length);
-
     await superdoc.bold();
     await superdoc.waitForStable();
     await superdoc.assertCommentHighlightExists({ commentId });
 
+    pos = await superdoc.findTextPos('resilience test');
+    await superdoc.setTextSelection(pos, pos + 'resilience test'.length);
     await superdoc.italic();
     await superdoc.waitForStable();
     await superdoc.assertCommentHighlightExists({ commentId });
 
+    pos = await superdoc.findTextPos('resilience test');
+    await superdoc.setTextSelection(pos, pos + 'resilience test'.length);
     await superdoc.underline();
     await superdoc.waitForStable();
     await superdoc.assertCommentHighlightExists({ commentId });

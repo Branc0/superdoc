@@ -1,7 +1,7 @@
 ---
-title: lists.restart
-sidebarTitle: lists.restart
-description: Restart numbering of an ordered list at the target item.
+title: lists.separate
+sidebarTitle: lists.separate
+description: Split a list sequence at the target item, creating a new sequence from that point forward.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,10 +10,10 @@ description: Restart numbering of an ordered list at the target item.
 
 ## Summary
 
-Restart numbering of an ordered list at the target item.
+Split a list sequence at the target item, creating a new sequence from that point forward.
 
-- Operation ID: `lists.restart`
-- API member path: `editor.doc.lists.restart(...)`
+- Operation ID: `lists.separate`
+- API member path: `editor.doc.lists.separate(...)`
 - Mutates document: `yes`
 - Idempotency: `conditional`
 - Supports tracked mode: `no`
@@ -22,12 +22,13 @@ Restart numbering of an ordered list at the target item.
 
 ## Expected result
 
-Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already restarts at the target item.
+Returns a ListsSeparateResult with the new listId and numId.
 
 ## Input fields
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
+| `copyOverrides` | boolean | no |  |
 | `target` | ListItemAddress | yes | ListItemAddress |
 | `target.kind` | `"block"` | yes | Constant: `"block"` |
 | `target.nodeId` | string | yes |  |
@@ -37,6 +38,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 
 ```json
 {
+  "copyOverrides": true,
   "target": {
     "kind": "block",
     "nodeId": "node-def456",
@@ -47,14 +49,12 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 
 ## Output fields
 
-### Variant 1 (item.kind="block")
+### Variant 1 (success=true)
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `item` | ListItemAddress | yes | ListItemAddress |
-| `item.kind` | `"block"` | yes | Constant: `"block"` |
-| `item.nodeId` | string | yes |  |
-| `item.nodeType` | `"listItem"` | yes | Constant: `"listItem"` |
+| `listId` | string | yes |  |
+| `numId` | integer | yes |  |
 | `success` | `true` | yes | Constant: `true` |
 
 ### Variant 2 (success=false)
@@ -62,7 +62,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `failure` | object | yes |  |
-| `failure.code` | enum | yes | `"NO_OP"`, `"INVALID_TARGET"` |
+| `failure.code` | enum | yes | `"INVALID_TARGET"`, `"NO_OP"` |
 | `failure.details` | any | no |  |
 | `failure.message` | string | yes |  |
 | `success` | `false` | yes | Constant: `false` |
@@ -71,11 +71,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 
 ```json
 {
-  "item": {
-    "kind": "block",
-    "nodeId": "node-def456",
-    "nodeType": "listItem"
-  },
+  "listId": "example",
+  "numId": 1,
   "success": true
 }
 ```
@@ -88,8 +85,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 
 ## Non-applied failure codes
 
-- `NO_OP`
 - `INVALID_TARGET`
+- `NO_OP`
 
 ## Raw schemas
 
@@ -98,6 +95,9 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 {
   "additionalProperties": false,
   "properties": {
+    "copyOverrides": {
+      "type": "boolean"
+    },
     "target": {
       "$ref": "#/$defs/ListItemAddress"
     }
@@ -117,8 +117,11 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
     {
       "additionalProperties": false,
       "properties": {
-        "item": {
-          "$ref": "#/$defs/ListItemAddress"
+        "listId": {
+          "type": "string"
+        },
+        "numId": {
+          "type": "integer"
         },
         "success": {
           "const": true
@@ -126,7 +129,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
       },
       "required": [
         "success",
-        "item"
+        "listId",
+        "numId"
       ],
       "type": "object"
     },
@@ -138,8 +142,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
           "properties": {
             "code": {
               "enum": [
-                "NO_OP",
-                "INVALID_TARGET"
+                "INVALID_TARGET",
+                "NO_OP"
               ]
             },
             "details": {},
@@ -173,8 +177,11 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
 {
   "additionalProperties": false,
   "properties": {
-    "item": {
-      "$ref": "#/$defs/ListItemAddress"
+    "listId": {
+      "type": "string"
+    },
+    "numId": {
+      "type": "integer"
     },
     "success": {
       "const": true
@@ -182,7 +189,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
   },
   "required": [
     "success",
-    "item"
+    "listId",
+    "numId"
   ],
   "type": "object"
 }
@@ -199,8 +207,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if numbering already rest
       "properties": {
         "code": {
           "enum": [
-            "NO_OP",
-            "INVALID_TARGET"
+            "INVALID_TARGET",
+            "NO_OP"
           ]
         },
         "details": {},

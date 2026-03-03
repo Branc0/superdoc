@@ -1,7 +1,7 @@
 ---
-title: lists.setType
-sidebarTitle: lists.setType
-description: Change the list type (ordered, unordered) of a target list.
+title: lists.setLevelRestart
+sidebarTitle: lists.setLevelRestart
+description: Set the restart behavior for a specific list level.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,10 +10,10 @@ description: Change the list type (ordered, unordered) of a target list.
 
 ## Summary
 
-Change the list type (ordered, unordered) of a target list.
+Set the restart behavior for a specific list level.
 
-- Operation ID: `lists.setType`
-- API member path: `editor.doc.lists.setType(...)`
+- Operation ID: `lists.setLevelRestart`
+- API member path: `editor.doc.lists.setLevelRestart(...)`
 - Mutates document: `yes`
 - Idempotency: `conditional`
 - Supports tracked mode: `no`
@@ -22,13 +22,15 @@ Change the list type (ordered, unordered) of a target list.
 
 ## Expected result
 
-Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has the requested type.
+Returns a ListsMutateItemResult receipt.
 
 ## Input fields
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `kind` | enum | yes | `"ordered"`, `"bullet"` |
+| `level` | integer | yes |  |
+| `restartAfterLevel` | any | yes |  |
+| `scope` | enum | no | `"definition"`, `"instance"` |
 | `target` | ListItemAddress | yes | ListItemAddress |
 | `target.kind` | `"block"` | yes | Constant: `"block"` |
 | `target.nodeId` | string | yes |  |
@@ -38,7 +40,9 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
 
 ```json
 {
-  "kind": "ordered",
+  "level": 1,
+  "restartAfterLevel": {},
+  "scope": "definition",
   "target": {
     "kind": "block",
     "nodeId": "node-def456",
@@ -64,7 +68,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `failure` | object | yes |  |
-| `failure.code` | enum | yes | `"NO_OP"`, `"INVALID_TARGET"` |
+| `failure.code` | enum | yes | `"INVALID_TARGET"`, `"LEVEL_OUT_OF_RANGE"` |
 | `failure.details` | any | no |  |
 | `failure.message` | string | yes |  |
 | `success` | `false` | yes | Constant: `false` |
@@ -90,8 +94,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
 
 ## Non-applied failure codes
 
-- `NO_OP`
 - `INVALID_TARGET`
+- `LEVEL_OUT_OF_RANGE`
 
 ## Raw schemas
 
@@ -100,10 +104,21 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
 {
   "additionalProperties": false,
   "properties": {
-    "kind": {
+    "level": {
+      "maximum": 8,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "restartAfterLevel": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "scope": {
       "enum": [
-        "ordered",
-        "bullet"
+        "definition",
+        "instance"
       ]
     },
     "target": {
@@ -112,7 +127,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
   },
   "required": [
     "target",
-    "kind"
+    "level",
+    "restartAfterLevel"
   ],
   "type": "object"
 }
@@ -147,8 +163,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
           "properties": {
             "code": {
               "enum": [
-                "NO_OP",
-                "INVALID_TARGET"
+                "INVALID_TARGET",
+                "LEVEL_OUT_OF_RANGE"
               ]
             },
             "details": {},
@@ -208,8 +224,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the list already has t
       "properties": {
         "code": {
           "enum": [
-            "NO_OP",
-            "INVALID_TARGET"
+            "INVALID_TARGET",
+            "LEVEL_OUT_OF_RANGE"
           ]
         },
         "details": {},

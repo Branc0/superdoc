@@ -1,7 +1,7 @@
 ---
-title: lists.outdent
-sidebarTitle: lists.outdent
-description: Decrease the indentation level of a list item.
+title: lists.attach
+sidebarTitle: lists.attach
+description: Convert non-list paragraphs to list items under an existing list sequence.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,10 +10,10 @@ description: Decrease the indentation level of a list item.
 
 ## Summary
 
-Decrease the indentation level of a list item.
+Convert non-list paragraphs to list items under an existing list sequence.
 
-- Operation ID: `lists.outdent`
-- API member path: `editor.doc.lists.outdent(...)`
+- Operation ID: `lists.attach`
+- API member path: `editor.doc.lists.attach(...)`
 - Mutates document: `yes`
 - Idempotency: `conditional`
 - Supports tracked mode: `no`
@@ -22,25 +22,33 @@ Decrease the indentation level of a list item.
 
 ## Expected result
 
-Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at the root level.
+Returns a ListsMutateItemResult confirming attachment.
 
 ## Input fields
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `target` | ListItemAddress | yes | ListItemAddress |
-| `target.kind` | `"block"` | yes | Constant: `"block"` |
-| `target.nodeId` | string | yes |  |
-| `target.nodeType` | `"listItem"` | yes | Constant: `"listItem"` |
+| `attachTo` | ListItemAddress | yes | ListItemAddress |
+| `attachTo.kind` | `"block"` | yes | Constant: `"block"` |
+| `attachTo.nodeId` | string | yes |  |
+| `attachTo.nodeType` | `"listItem"` | yes | Constant: `"listItem"` |
+| `level` | integer | no |  |
+| `target` | BlockAddressOrRange | yes | BlockAddressOrRange |
 
 ### Example request
 
 ```json
 {
-  "target": {
+  "attachTo": {
     "kind": "block",
     "nodeId": "node-def456",
     "nodeType": "listItem"
+  },
+  "level": 1,
+  "target": {
+    "kind": "block",
+    "nodeId": "node-def456",
+    "nodeType": "paragraph"
   }
 }
 ```
@@ -62,7 +70,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `failure` | object | yes |  |
-| `failure.code` | enum | yes | `"NO_OP"`, `"INVALID_TARGET"`, `"LEVEL_OUT_OF_RANGE"` |
+| `failure.code` | enum | yes | `"INVALID_TARGET"`, `"NO_OP"` |
 | `failure.details` | any | no |  |
 | `failure.message` | string | yes |  |
 | `success` | `false` | yes | Constant: `false` |
@@ -88,9 +96,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 
 ## Non-applied failure codes
 
-- `NO_OP`
 - `INVALID_TARGET`
-- `LEVEL_OUT_OF_RANGE`
+- `NO_OP`
 
 ## Raw schemas
 
@@ -99,12 +106,21 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 {
   "additionalProperties": false,
   "properties": {
-    "target": {
+    "attachTo": {
       "$ref": "#/$defs/ListItemAddress"
+    },
+    "level": {
+      "maximum": 8,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "target": {
+      "$ref": "#/$defs/BlockAddressOrRange"
     }
   },
   "required": [
-    "target"
+    "target",
+    "attachTo"
   ],
   "type": "object"
 }
@@ -139,9 +155,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
           "properties": {
             "code": {
               "enum": [
-                "NO_OP",
                 "INVALID_TARGET",
-                "LEVEL_OUT_OF_RANGE"
+                "NO_OP"
               ]
             },
             "details": {},
@@ -201,9 +216,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
       "properties": {
         "code": {
           "enum": [
-            "NO_OP",
             "INVALID_TARGET",
-            "LEVEL_OUT_OF_RANGE"
+            "NO_OP"
           ]
         },
         "details": {},

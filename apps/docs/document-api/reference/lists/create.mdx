@@ -1,7 +1,7 @@
 ---
-title: lists.exit
-sidebarTitle: lists.exit
-description: Exit a list context, converting the target item to a paragraph.
+title: lists.create
+sidebarTitle: lists.create
+description: Create a new list from one or more paragraphs, or convert existing paragraphs into a new list.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,51 +10,63 @@ description: Exit a list context, converting the target item to a paragraph.
 
 ## Summary
 
-Exit a list context, converting the target item to a paragraph.
+Create a new list from one or more paragraphs, or convert existing paragraphs into a new list.
 
-- Operation ID: `lists.exit`
-- API member path: `editor.doc.lists.exit(...)`
+- Operation ID: `lists.create`
+- API member path: `editor.doc.lists.create(...)`
 - Mutates document: `yes`
-- Idempotency: `conditional`
+- Idempotency: `non-idempotent`
 - Supports tracked mode: `no`
 - Supports dry run: `yes`
 - Deterministic target resolution: `yes`
 
 ## Expected result
 
-Returns a ListsExitResult confirming the item was converted to a plain paragraph.
+Returns a ListsCreateResult with the new listId and the first item address.
 
 ## Input fields
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `target` | ListItemAddress | yes | ListItemAddress |
-| `target.kind` | `"block"` | yes | Constant: `"block"` |
-| `target.nodeId` | string | yes |  |
-| `target.nodeType` | `"listItem"` | yes | Constant: `"listItem"` |
+| `at` | BlockAddress | no | BlockAddress |
+| `at.kind` | `"block"` | no | Constant: `"block"` |
+| `at.nodeId` | string | no |  |
+| `at.nodeType` | `"paragraph"` | no | Constant: `"paragraph"` |
+| `kind` | enum | yes | `"ordered"`, `"bullet"` |
+| `level` | integer | no |  |
+| `mode` | enum | yes | `"empty"`, `"fromParagraphs"` |
+| `target` | BlockAddressOrRange | no | BlockAddressOrRange |
 
 ### Example request
 
 ```json
 {
+  "at": {
+    "kind": "block",
+    "nodeId": "node-def456",
+    "nodeType": "paragraph"
+  },
+  "kind": "ordered",
+  "mode": "empty",
   "target": {
     "kind": "block",
     "nodeId": "node-def456",
-    "nodeType": "listItem"
+    "nodeType": "paragraph"
   }
 }
 ```
 
 ## Output fields
 
-### Variant 1 (paragraph.kind="block")
+### Variant 1 (item.kind="block")
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| `paragraph` | ParagraphAddress | yes | ParagraphAddress |
-| `paragraph.kind` | `"block"` | yes | Constant: `"block"` |
-| `paragraph.nodeId` | string | yes |  |
-| `paragraph.nodeType` | `"paragraph"` | yes | Constant: `"paragraph"` |
+| `item` | ListItemAddress | yes | ListItemAddress |
+| `item.kind` | `"block"` | yes | Constant: `"block"` |
+| `item.nodeId` | string | yes |  |
+| `item.nodeType` | `"listItem"` | yes | Constant: `"listItem"` |
+| `listId` | string | yes |  |
 | `success` | `true` | yes | Constant: `true` |
 
 ### Variant 2 (success=false)
@@ -62,7 +74,7 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `failure` | object | yes |  |
-| `failure.code` | enum | yes | `"INVALID_TARGET"` |
+| `failure.code` | enum | yes | `"INVALID_TARGET"`, `"LEVEL_OUT_OF_RANGE"` |
 | `failure.details` | any | no |  |
 | `failure.message` | string | yes |  |
 | `success` | `false` | yes | Constant: `false` |
@@ -71,11 +83,12 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
 
 ```json
 {
-  "paragraph": {
+  "item": {
     "kind": "block",
     "nodeId": "node-def456",
-    "nodeType": "paragraph"
+    "nodeType": "listItem"
   },
+  "listId": "example",
   "success": true
 }
 ```
@@ -89,6 +102,7 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
 ## Non-applied failure codes
 
 - `INVALID_TARGET`
+- `LEVEL_OUT_OF_RANGE`
 
 ## Raw schemas
 
@@ -96,14 +110,56 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
 ```json
 {
   "additionalProperties": false,
+  "else": {
+    "required": [
+      "mode",
+      "kind",
+      "target"
+    ]
+  },
+  "if": {
+    "properties": {
+      "mode": {
+        "const": "empty"
+      }
+    }
+  },
   "properties": {
+    "at": {
+      "$ref": "#/$defs/BlockAddress"
+    },
+    "kind": {
+      "enum": [
+        "ordered",
+        "bullet"
+      ]
+    },
+    "level": {
+      "maximum": 8,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "mode": {
+      "enum": [
+        "empty",
+        "fromParagraphs"
+      ]
+    },
     "target": {
-      "$ref": "#/$defs/ListItemAddress"
+      "$ref": "#/$defs/BlockAddressOrRange"
     }
   },
   "required": [
-    "target"
+    "mode",
+    "kind"
   ],
+  "then": {
+    "required": [
+      "mode",
+      "kind",
+      "at"
+    ]
+  },
   "type": "object"
 }
 ```
@@ -116,8 +172,11 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
     {
       "additionalProperties": false,
       "properties": {
-        "paragraph": {
-          "$ref": "#/$defs/ParagraphAddress"
+        "item": {
+          "$ref": "#/$defs/ListItemAddress"
+        },
+        "listId": {
+          "type": "string"
         },
         "success": {
           "const": true
@@ -125,7 +184,8 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
       },
       "required": [
         "success",
-        "paragraph"
+        "listId",
+        "item"
       ],
       "type": "object"
     },
@@ -137,7 +197,8 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
           "properties": {
             "code": {
               "enum": [
-                "INVALID_TARGET"
+                "INVALID_TARGET",
+                "LEVEL_OUT_OF_RANGE"
               ]
             },
             "details": {},
@@ -171,8 +232,11 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
 {
   "additionalProperties": false,
   "properties": {
-    "paragraph": {
-      "$ref": "#/$defs/ParagraphAddress"
+    "item": {
+      "$ref": "#/$defs/ListItemAddress"
+    },
+    "listId": {
+      "type": "string"
     },
     "success": {
       "const": true
@@ -180,7 +244,8 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
   },
   "required": [
     "success",
-    "paragraph"
+    "listId",
+    "item"
   ],
   "type": "object"
 }
@@ -197,7 +262,8 @@ Returns a ListsExitResult confirming the item was converted to a plain paragraph
       "properties": {
         "code": {
           "enum": [
-            "INVALID_TARGET"
+            "INVALID_TARGET",
+            "LEVEL_OUT_OF_RANGE"
           ]
         },
         "details": {},

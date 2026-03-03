@@ -687,11 +687,41 @@ _No fields._
 | `operations.insert.dryRun` | boolean | yes |  |
 | `operations.insert.reasons` | enum[] | no |  |
 | `operations.insert.tracked` | boolean | yes |  |
-| `operations.lists.exit` | object | yes |  |
-| `operations.lists.exit.available` | boolean | yes |  |
-| `operations.lists.exit.dryRun` | boolean | yes |  |
-| `operations.lists.exit.reasons` | enum[] | no |  |
-| `operations.lists.exit.tracked` | boolean | yes |  |
+| `operations.lists.attach` | object | yes |  |
+| `operations.lists.attach.available` | boolean | yes |  |
+| `operations.lists.attach.dryRun` | boolean | yes |  |
+| `operations.lists.attach.reasons` | enum[] | no |  |
+| `operations.lists.attach.tracked` | boolean | yes |  |
+| `operations.lists.canContinuePrevious` | object | yes |  |
+| `operations.lists.canContinuePrevious.available` | boolean | yes |  |
+| `operations.lists.canContinuePrevious.dryRun` | boolean | yes |  |
+| `operations.lists.canContinuePrevious.reasons` | enum[] | no |  |
+| `operations.lists.canContinuePrevious.tracked` | boolean | yes |  |
+| `operations.lists.canJoin` | object | yes |  |
+| `operations.lists.canJoin.available` | boolean | yes |  |
+| `operations.lists.canJoin.dryRun` | boolean | yes |  |
+| `operations.lists.canJoin.reasons` | enum[] | no |  |
+| `operations.lists.canJoin.tracked` | boolean | yes |  |
+| `operations.lists.continuePrevious` | object | yes |  |
+| `operations.lists.continuePrevious.available` | boolean | yes |  |
+| `operations.lists.continuePrevious.dryRun` | boolean | yes |  |
+| `operations.lists.continuePrevious.reasons` | enum[] | no |  |
+| `operations.lists.continuePrevious.tracked` | boolean | yes |  |
+| `operations.lists.convertToText` | object | yes |  |
+| `operations.lists.convertToText.available` | boolean | yes |  |
+| `operations.lists.convertToText.dryRun` | boolean | yes |  |
+| `operations.lists.convertToText.reasons` | enum[] | no |  |
+| `operations.lists.convertToText.tracked` | boolean | yes |  |
+| `operations.lists.create` | object | yes |  |
+| `operations.lists.create.available` | boolean | yes |  |
+| `operations.lists.create.dryRun` | boolean | yes |  |
+| `operations.lists.create.reasons` | enum[] | no |  |
+| `operations.lists.create.tracked` | boolean | yes |  |
+| `operations.lists.detach` | object | yes |  |
+| `operations.lists.detach.available` | boolean | yes |  |
+| `operations.lists.detach.dryRun` | boolean | yes |  |
+| `operations.lists.detach.reasons` | enum[] | no |  |
+| `operations.lists.detach.tracked` | boolean | yes |  |
 | `operations.lists.get` | object | yes |  |
 | `operations.lists.get.available` | boolean | yes |  |
 | `operations.lists.get.dryRun` | boolean | yes |  |
@@ -707,6 +737,11 @@ _No fields._
 | `operations.lists.insert.dryRun` | boolean | yes |  |
 | `operations.lists.insert.reasons` | enum[] | no |  |
 | `operations.lists.insert.tracked` | boolean | yes |  |
+| `operations.lists.join` | object | yes |  |
+| `operations.lists.join.available` | boolean | yes |  |
+| `operations.lists.join.dryRun` | boolean | yes |  |
+| `operations.lists.join.reasons` | enum[] | no |  |
+| `operations.lists.join.tracked` | boolean | yes |  |
 | `operations.lists.list` | object | yes |  |
 | `operations.lists.list.available` | boolean | yes |  |
 | `operations.lists.list.dryRun` | boolean | yes |  |
@@ -717,16 +752,26 @@ _No fields._
 | `operations.lists.outdent.dryRun` | boolean | yes |  |
 | `operations.lists.outdent.reasons` | enum[] | no |  |
 | `operations.lists.outdent.tracked` | boolean | yes |  |
-| `operations.lists.restart` | object | yes |  |
-| `operations.lists.restart.available` | boolean | yes |  |
-| `operations.lists.restart.dryRun` | boolean | yes |  |
-| `operations.lists.restart.reasons` | enum[] | no |  |
-| `operations.lists.restart.tracked` | boolean | yes |  |
-| `operations.lists.setType` | object | yes |  |
-| `operations.lists.setType.available` | boolean | yes |  |
-| `operations.lists.setType.dryRun` | boolean | yes |  |
-| `operations.lists.setType.reasons` | enum[] | no |  |
-| `operations.lists.setType.tracked` | boolean | yes |  |
+| `operations.lists.separate` | object | yes |  |
+| `operations.lists.separate.available` | boolean | yes |  |
+| `operations.lists.separate.dryRun` | boolean | yes |  |
+| `operations.lists.separate.reasons` | enum[] | no |  |
+| `operations.lists.separate.tracked` | boolean | yes |  |
+| `operations.lists.setLevel` | object | yes |  |
+| `operations.lists.setLevel.available` | boolean | yes |  |
+| `operations.lists.setLevel.dryRun` | boolean | yes |  |
+| `operations.lists.setLevel.reasons` | enum[] | no |  |
+| `operations.lists.setLevel.tracked` | boolean | yes |  |
+| `operations.lists.setLevelRestart` | object | yes |  |
+| `operations.lists.setLevelRestart.available` | boolean | yes |  |
+| `operations.lists.setLevelRestart.dryRun` | boolean | yes |  |
+| `operations.lists.setLevelRestart.reasons` | enum[] | no |  |
+| `operations.lists.setLevelRestart.tracked` | boolean | yes |  |
+| `operations.lists.setValue` | object | yes |  |
+| `operations.lists.setValue.available` | boolean | yes |  |
+| `operations.lists.setValue.dryRun` | boolean | yes |  |
+| `operations.lists.setValue.reasons` | enum[] | no |  |
+| `operations.lists.setValue.tracked` | boolean | yes |  |
 | `operations.mutations.apply` | object | yes |  |
 | `operations.mutations.apply.available` | boolean | yes |  |
 | `operations.mutations.apply.dryRun` | boolean | yes |  |
@@ -2082,7 +2127,55 @@ _No fields._
       ],
       "tracked": true
     },
-    "lists.exit": {
+    "lists.attach": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.canContinuePrevious": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.canJoin": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.continuePrevious": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.convertToText": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.create": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.detach": {
       "available": true,
       "dryRun": true,
       "reasons": [
@@ -2114,6 +2207,14 @@ _No fields._
       ],
       "tracked": true
     },
+    "lists.join": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
     "lists.list": {
       "available": true,
       "dryRun": true,
@@ -2130,7 +2231,7 @@ _No fields._
       ],
       "tracked": true
     },
-    "lists.restart": {
+    "lists.separate": {
       "available": true,
       "dryRun": true,
       "reasons": [
@@ -2138,7 +2239,23 @@ _No fields._
       ],
       "tracked": true
     },
-    "lists.setType": {
+    "lists.setLevel": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.setLevelRestart": {
+      "available": true,
+      "dryRun": true,
+      "reasons": [
+        "COMMAND_UNAVAILABLE"
+      ],
+      "tracked": true
+    },
+    "lists.setValue": {
       "available": true,
       "dryRun": true,
       "reasons": [
@@ -7340,7 +7457,217 @@ _No fields._
           ],
           "type": "object"
         },
-        "lists.exit": {
+        "lists.attach": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.canContinuePrevious": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.canJoin": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.continuePrevious": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.convertToText": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.create": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.detach": {
           "additionalProperties": false,
           "properties": {
             "available": {
@@ -7480,6 +7807,41 @@ _No fields._
           ],
           "type": "object"
         },
+        "lists.join": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
         "lists.list": {
           "additionalProperties": false,
           "properties": {
@@ -7550,7 +7912,7 @@ _No fields._
           ],
           "type": "object"
         },
-        "lists.restart": {
+        "lists.separate": {
           "additionalProperties": false,
           "properties": {
             "available": {
@@ -7585,7 +7947,77 @@ _No fields._
           ],
           "type": "object"
         },
-        "lists.setType": {
+        "lists.setLevel": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.setLevelRestart": {
+          "additionalProperties": false,
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "dryRun": {
+              "type": "boolean"
+            },
+            "reasons": {
+              "items": {
+                "enum": [
+                  "COMMAND_UNAVAILABLE",
+                  "HELPER_UNAVAILABLE",
+                  "OPERATION_UNAVAILABLE",
+                  "TRACKED_MODE_UNAVAILABLE",
+                  "DRY_RUN_UNAVAILABLE",
+                  "NAMESPACE_UNAVAILABLE",
+                  "STYLES_PART_MISSING",
+                  "COLLABORATION_ACTIVE"
+                ]
+              },
+              "type": "array"
+            },
+            "tracked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "available",
+            "tracked",
+            "dryRun"
+          ],
+          "type": "object"
+        },
+        "lists.setValue": {
           "additionalProperties": false,
           "properties": {
             "available": {
@@ -10414,11 +10846,20 @@ _No fields._
         "lists.list",
         "lists.get",
         "lists.insert",
-        "lists.setType",
+        "lists.create",
+        "lists.attach",
+        "lists.detach",
         "lists.indent",
         "lists.outdent",
-        "lists.restart",
-        "lists.exit",
+        "lists.join",
+        "lists.canJoin",
+        "lists.separate",
+        "lists.setLevel",
+        "lists.setValue",
+        "lists.continuePrevious",
+        "lists.canContinuePrevious",
+        "lists.setLevelRestart",
+        "lists.convertToText",
         "comments.create",
         "comments.patch",
         "comments.delete",

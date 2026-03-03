@@ -51,17 +51,21 @@ async function runCli(args: string[], stdinBytes?: Uint8Array): Promise<RunResul
   let stdout = '';
   let stderr = '';
 
-  const code = await run(args, {
-    stdout(message: string) {
-      stdout += message;
+  const code = await run(
+    args,
+    {
+      stdout(message: string) {
+        stdout += message;
+      },
+      stderr(message: string) {
+        stderr += message;
+      },
+      async readStdinBytes() {
+        return stdinBytes ?? new Uint8Array();
+      },
     },
-    stderr(message: string) {
-      stderr += message;
-    },
-    async readStdinBytes() {
-      return stdinBytes ?? new Uint8Array();
-    },
-  });
+    { stateDir: STATE_DIR },
+  );
 
   return { code, stdout, stderr };
 }
@@ -145,7 +149,6 @@ async function firstListItemAddress(args: string[]): Promise<ListItemAddress> {
 
 describe('superdoc CLI', () => {
   beforeAll(async () => {
-    process.env.SUPERDOC_CLI_STATE_DIR = STATE_DIR;
     await mkdir(TEST_DIR, { recursive: true });
     await copyFile(await resolveSourceDocFixture(), SAMPLE_DOC);
     await copyFile(await resolveListDocFixture(), LIST_SAMPLE_DOC);
@@ -157,7 +160,6 @@ describe('superdoc CLI', () => {
 
   afterAll(async () => {
     await rm(TEST_DIR, { recursive: true, force: true });
-    delete process.env.SUPERDOC_CLI_STATE_DIR;
   });
 
   test('status returns inactive when no document is open', async () => {
@@ -1172,28 +1174,26 @@ describe('superdoc CLI', () => {
     expect(closeResult.code).toBe(0);
   });
 
-  test('lists set-type tracked mode maps to TRACK_CHANGE_COMMAND_UNAVAILABLE', async () => {
-    const source = join(TEST_DIR, 'lists-set-type-source.docx');
-    const out = join(TEST_DIR, 'lists-set-type-out.docx');
+  test('lists detach tracked mode maps to TRACK_CHANGE_COMMAND_UNAVAILABLE', async () => {
+    const source = join(TEST_DIR, 'lists-detach-source.docx');
+    const out = join(TEST_DIR, 'lists-detach-out.docx');
     await copyFile(LIST_SAMPLE_DOC, source);
 
     const target = await firstListItemAddress(['lists', 'list', source, '--limit', '1']);
-    const setTypeResult = await runCli([
+    const detachResult = await runCli([
       'lists',
-      'set-type',
+      'detach',
       source,
       '--target-json',
       JSON.stringify(target),
-      '--kind',
-      'bullet',
       '--change-mode',
       'tracked',
       '--out',
       out,
     ]);
 
-    expect(setTypeResult.code).toBe(1);
-    const envelope = parseJsonOutput<ErrorEnvelope>(setTypeResult);
+    expect(detachResult.code).toBe(1);
+    const envelope = parseJsonOutput<ErrorEnvelope>(detachResult);
     expect(envelope.error.code).toBe('TRACK_CHANGE_COMMAND_UNAVAILABLE');
   });
 

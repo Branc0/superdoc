@@ -1,7 +1,7 @@
 ---
-title: lists.outdent
-sidebarTitle: lists.outdent
-description: Decrease the indentation level of a list item.
+title: lists.setValue
+sidebarTitle: lists.setValue
+description: Set an explicit numbering value at the target item. Mid-sequence targets are atomically separated first.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,10 +10,10 @@ description: Decrease the indentation level of a list item.
 
 ## Summary
 
-Decrease the indentation level of a list item.
+Set an explicit numbering value at the target item. Mid-sequence targets are atomically separated first.
 
-- Operation ID: `lists.outdent`
-- API member path: `editor.doc.lists.outdent(...)`
+- Operation ID: `lists.setValue`
+- API member path: `editor.doc.lists.setValue(...)`
 - Mutates document: `yes`
 - Idempotency: `conditional`
 - Supports tracked mode: `no`
@@ -22,7 +22,7 @@ Decrease the indentation level of a list item.
 
 ## Expected result
 
-Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at the root level.
+Returns a ListsMutateItemResult receipt.
 
 ## Input fields
 
@@ -32,6 +32,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 | `target.kind` | `"block"` | yes | Constant: `"block"` |
 | `target.nodeId` | string | yes |  |
 | `target.nodeType` | `"listItem"` | yes | Constant: `"listItem"` |
+| `value` | any | yes |  |
 
 ### Example request
 
@@ -41,7 +42,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
     "kind": "block",
     "nodeId": "node-def456",
     "nodeType": "listItem"
-  }
+  },
+  "value": {}
 }
 ```
 
@@ -62,7 +64,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `failure` | object | yes |  |
-| `failure.code` | enum | yes | `"NO_OP"`, `"INVALID_TARGET"`, `"LEVEL_OUT_OF_RANGE"` |
+| `failure.code` | enum | yes | `"INVALID_TARGET"`, `"NO_OP"` |
 | `failure.details` | any | no |  |
 | `failure.message` | string | yes |  |
 | `success` | `false` | yes | Constant: `false` |
@@ -88,9 +90,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 
 ## Non-applied failure codes
 
-- `NO_OP`
 - `INVALID_TARGET`
-- `LEVEL_OUT_OF_RANGE`
+- `NO_OP`
 
 ## Raw schemas
 
@@ -101,10 +102,17 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
   "properties": {
     "target": {
       "$ref": "#/$defs/ListItemAddress"
+    },
+    "value": {
+      "type": [
+        "integer",
+        "null"
+      ]
     }
   },
   "required": [
-    "target"
+    "target",
+    "value"
   ],
   "type": "object"
 }
@@ -139,9 +147,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
           "properties": {
             "code": {
               "enum": [
-                "NO_OP",
                 "INVALID_TARGET",
-                "LEVEL_OUT_OF_RANGE"
+                "NO_OP"
               ]
             },
             "details": {},
@@ -201,9 +208,8 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
       "properties": {
         "code": {
           "enum": [
-            "NO_OP",
             "INVALID_TARGET",
-            "LEVEL_OUT_OF_RANGE"
+            "NO_OP"
           ]
         },
         "details": {},

@@ -1,7 +1,7 @@
 ---
-title: lists.outdent
-sidebarTitle: lists.outdent
-description: Decrease the indentation level of a list item.
+title: lists.continuePrevious
+sidebarTitle: lists.continuePrevious
+description: Continue numbering from the nearest compatible previous list sequence.
 ---
 
 {/* GENERATED FILE: DO NOT EDIT. Regenerate via `pnpm run docapi:sync`. */}
@@ -10,10 +10,10 @@ description: Decrease the indentation level of a list item.
 
 ## Summary
 
-Decrease the indentation level of a list item.
+Continue numbering from the nearest compatible previous list sequence.
 
-- Operation ID: `lists.outdent`
-- API member path: `editor.doc.lists.outdent(...)`
+- Operation ID: `lists.continuePrevious`
+- API member path: `editor.doc.lists.continuePrevious(...)`
 - Mutates document: `yes`
 - Idempotency: `conditional`
 - Supports tracked mode: `no`
@@ -22,7 +22,7 @@ Decrease the indentation level of a list item.
 
 ## Expected result
 
-Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at the root level.
+Returns a ListsMutateItemResult receipt.
 
 ## Input fields
 
@@ -62,7 +62,7 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
 | `failure` | object | yes |  |
-| `failure.code` | enum | yes | `"NO_OP"`, `"INVALID_TARGET"`, `"LEVEL_OUT_OF_RANGE"` |
+| `failure.code` | enum | yes | `"INVALID_TARGET"`, `"NO_COMPATIBLE_PREVIOUS"`, `"ALREADY_CONTINUOUS"` |
 | `failure.details` | any | no |  |
 | `failure.message` | string | yes |  |
 | `success` | `false` | yes | Constant: `false` |
@@ -88,9 +88,9 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
 
 ## Non-applied failure codes
 
-- `NO_OP`
 - `INVALID_TARGET`
-- `LEVEL_OUT_OF_RANGE`
+- `NO_COMPATIBLE_PREVIOUS`
+- `ALREADY_CONTINUOUS`
 
 ## Raw schemas
 
@@ -139,9 +139,9 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
           "properties": {
             "code": {
               "enum": [
-                "NO_OP",
                 "INVALID_TARGET",
-                "LEVEL_OUT_OF_RANGE"
+                "NO_COMPATIBLE_PREVIOUS",
+                "ALREADY_CONTINUOUS"
               ]
             },
             "details": {},
@@ -201,9 +201,9 @@ Returns a ListsMutateItemResult receipt; reports NO_OP if the item is already at
       "properties": {
         "code": {
           "enum": [
-            "NO_OP",
             "INVALID_TARGET",
-            "LEVEL_OUT_OF_RANGE"
+            "NO_COMPATIBLE_PREVIOUS",
+            "ALREADY_CONTINUOUS"
           ]
         },
         "details": {},

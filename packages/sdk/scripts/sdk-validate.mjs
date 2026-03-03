@@ -74,7 +74,16 @@ function resolveHostCliBinaryPath() {
   return path.join(REPO_ROOT, 'apps/cli/artifacts', resolveHostCliArtifact());
 }
 
+let superdocBuilt = false;
+
+async function ensureSuperdocBuilt() {
+  if (superdocBuilt) return;
+  await run('pnpm', ['--prefix', path.join(REPO_ROOT, 'packages/superdoc'), 'run', 'build:es']);
+  superdocBuilt = true;
+}
+
 async function buildHostCliBinary() {
+  await ensureSuperdocBuilt();
   await run('node', [path.join(REPO_ROOT, 'apps/cli/scripts/build-native-cli.js')], {
     cwd: path.join(REPO_ROOT, 'apps/cli'),
   });

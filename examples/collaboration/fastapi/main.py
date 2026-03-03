@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import logging
 import os
+from contextlib import asynccontextmanager
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
-from superdoc import SuperDocClient
+from superdoc import AsyncSuperDocClient
 
 EXAMPLE_ROOT = Path(__file__).resolve().parent
 
@@ -27,7 +28,6 @@ COLLAB_SYNC_TIMEOUT_MS = 60_000
 OPEN_TIMEOUT_MS = 90_000
 WATCHDOG_TIMEOUT_MS = 120_000
 
-app = FastAPI(title="SuperDoc FastAPI Collaboration Demo")
 logger = logging.getLogger("uvicorn.error")
 
 try:
@@ -36,40 +36,37 @@ except PackageNotFoundError:
     SUPERDOC_SDK_VERSION = "not installed"
 
 
-@app.on_event("startup")
-def on_startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     logger.info("superdoc-sdk version: %s", SUPERDOC_SDK_VERSION)
     os.environ.setdefault(COLLAB_TOKEN_ENV, COLLAB_TOKEN_DEFAULT)
     logger.info("collaboration token env: %s", COLLAB_TOKEN_ENV)
 
-    client = SuperDocClient(watchdog_timeout_ms=WATCHDOG_TIMEOUT_MS)
-
-    open_result = client.doc.open(
-        {
-            "doc": str(DOC_PATH),
-            "collaboration": {
-                "providerType": COLLAB_PROVIDER,
-                "url": COLLAB_URL,
-                "documentId": COLLAB_DOCUMENT_ID,
-                "tokenEnv": COLLAB_TOKEN_ENV,
-                "syncTimeoutMs": COLLAB_SYNC_TIMEOUT_MS,
+    async with AsyncSuperDocClient(watchdog_timeout_ms=WATCHDOG_TIMEOUT_MS) as client:
+        open_result = await client.doc.open(
+            {
+                "doc": str(DOC_PATH),
+                "collaboration": {
+                    "providerType": COLLAB_PROVIDER,
+                    "url": COLLAB_URL,
+                    "documentId": COLLAB_DOCUMENT_ID,
+                    "tokenEnv": COLLAB_TOKEN_ENV,
+                    "syncTimeoutMs": COLLAB_SYNC_TIMEOUT_MS,
+                },
             },
-        },
-        timeout_ms=OPEN_TIMEOUT_MS,
-    )
-    markdown_content = MARKDOWN_PATH.read_text(encoding="utf-8")
-    client.doc.insert({"value": markdown_content, "type": "markdown"})
+            timeout_ms=OPEN_TIMEOUT_MS,
+        )
+        markdown_content = MARKDOWN_PATH.read_text(encoding="utf-8")
+        await client.doc.insert({"value": markdown_content, "type": "markdown"})
 
-    app.state.client = client
-    app.state.open_result = open_result
+        app.state.client = client
+        app.state.open_result = open_result
+        try:
+            yield
+        finally:
+            await client.doc.close({})
 
-
-@app.on_event("shutdown")
-def on_shutdown() -> None:
-    client = app.state.client
-    client.doc.close({})
-    client.dispose()
-
+app = FastAPI(title="SuperDoc FastAPI Collaboration Demo", lifespan=lifespan)
 
 @app.get("/")
 def root() -> dict:
@@ -86,19 +83,19 @@ def root() -> dict:
 
 
 @app.get("/status")
-def status() -> dict:
-    return app.state.client.doc.status({})
+async def status() -> dict:
+    return await app.state.client.doc.status({})
 
 
 @app.get("/insert")
-def insert(text: str = Query(...)) -> dict:
-    return app.state.client.doc.insert({"value": text})
+async def insert(text: str = Query(...)) -> dict:
+    return await app.state.client.doc.insert({"value": text})
 
 
 @app.get("/download")
-def download() -> FileResponse:
+async def download() -> FileResponse:
     DOWNLOAD_PATH.parent.mkdir(parents=True, exist_ok=True)
-    app.state.client.doc.save({"out": str(DOWNLOAD_PATH), "force": True})
+    await app.state.client.doc.save({"out": str(DOWNLOAD_PATH), "force": True})
     return FileResponse(
         path=str(DOWNLOAD_PATH),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

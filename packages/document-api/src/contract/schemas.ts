@@ -2746,7 +2746,7 @@ const operationSchemas: Record<OperationId, OperationSchemaSet> = {
         changeMode: { enum: ['direct', 'tracked'] },
         steps: arraySchema({ type: 'object' }),
       },
-      ['expectedRevision', 'atomic', 'changeMode', 'steps'],
+      ['atomic', 'changeMode', 'steps'],
     ),
     output: objectSchema(
       {
@@ -2766,7 +2766,7 @@ const operationSchemas: Record<OperationId, OperationSchemaSet> = {
         changeMode: { enum: ['direct', 'tracked'] },
         steps: arraySchema({ type: 'object' }),
       },
-      ['expectedRevision', 'atomic', 'changeMode', 'steps'],
+      ['atomic', 'changeMode', 'steps'],
     ),
     output: objectSchema(
       {

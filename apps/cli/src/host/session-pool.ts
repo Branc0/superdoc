@@ -262,7 +262,8 @@ export class InMemorySessionPool implements SessionPool {
 
       this.clearAutosaveTimer(session);
 
-      if (session.dirty && !options?.discard) {
+      const shouldCheckpoint = !options?.discard && (session.dirty || session.sessionType === 'collab');
+      if (shouldCheckpoint) {
         await this.checkpointUnsafe(sessionId);
       }
 
@@ -344,7 +345,12 @@ export class InMemorySessionPool implements SessionPool {
   /** Checkpoint without acquiring the session lock (caller must hold it). */
   private async checkpointUnsafe(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId);
-    if (!session?.dirty) return;
+    if (!session) return;
+
+    // Local sessions: only checkpoint when dirty (we control all mutations).
+    // Collab sessions: always checkpoint — remote peer edits update the
+    // in-memory editor via the Yjs provider without going through markDirty().
+    if (!session.dirty && session.sessionType !== 'collab') return;
 
     if (session.sessionType === 'collab') {
       await this.checkpointCollabSession(session);

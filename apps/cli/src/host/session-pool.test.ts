@@ -239,6 +239,78 @@ describe('InMemorySessionPool', () => {
       expect(pool.isDirty('s1')).toBe(false);
     });
 
+    test('checkpoint exports collab session even when not dirty (remote peer edits)', async () => {
+      const exportCalls: string[] = [];
+
+      const pool = new InMemorySessionPool({
+        openCollaborative: async () => createFakeOpened('collab').opened,
+        exportToPath: async (_editor, docPath) => {
+          exportCalls.push(docPath);
+          return { path: docPath, byteLength: 100 };
+        },
+        now: () => 1000,
+        createTimer: () => 0 as unknown as ReturnType<typeof setTimeout>,
+        clearTimer: NOOP,
+      });
+
+      await pool.acquire('s1', COLLAB_METADATA, TEST_IO);
+
+      // No markDirty — simulates remote-only peer edits
+      expect(pool.isDirty('s1')).toBe(false);
+
+      await pool.checkpoint('s1');
+
+      // Collab sessions must always export: remote peer edits bypass markDirty()
+      expect(exportCalls).toEqual([COLLAB_METADATA.workingDocPath]);
+    });
+
+    test('checkpoint skips local session when not dirty', async () => {
+      const exportCalls: string[] = [];
+
+      const pool = new InMemorySessionPool({
+        openLocal: async () => createFakeOpened('local').opened,
+        exportToPath: async (_editor, docPath) => {
+          exportCalls.push(docPath);
+          return { path: docPath, byteLength: 100 };
+        },
+        now: () => 1000,
+        createTimer: () => 0 as unknown as ReturnType<typeof setTimeout>,
+        clearTimer: NOOP,
+      });
+
+      await pool.acquire('s1', LOCAL_METADATA, TEST_IO);
+      expect(pool.isDirty('s1')).toBe(false);
+
+      await pool.checkpoint('s1');
+
+      // Local sessions with no mutations should not export
+      expect(exportCalls).toEqual([]);
+    });
+
+    test('disposeSession exports collab session even when not dirty', async () => {
+      const exportCalls: string[] = [];
+
+      const pool = new InMemorySessionPool({
+        openCollaborative: async () => createFakeOpened('collab').opened,
+        exportToPath: async (_editor, docPath) => {
+          exportCalls.push(docPath);
+          return { path: docPath, byteLength: 100 };
+        },
+        now: () => 1000,
+        createTimer: () => 0 as unknown as ReturnType<typeof setTimeout>,
+        clearTimer: NOOP,
+      });
+
+      const opened = await pool.acquire('s1', COLLAB_METADATA, TEST_IO);
+      opened.dispose();
+
+      // No markDirty — simulates remote-only peer edits
+      await pool.disposeSession('s1');
+
+      // Collab sessions must checkpoint on dispose regardless of dirty flag
+      expect(exportCalls).toEqual([COLLAB_METADATA.workingDocPath]);
+    });
+
     test('disposeSession with discard does NOT checkpoint', async () => {
       const { pool } = createPool();
 

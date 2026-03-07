@@ -339,7 +339,7 @@ function projectBlock(pmNode: ProseMirrorNode): SDContentNode {
       return projectToc(pmNode);
     case 'sdt':
     case 'structuredContentBlock':
-      return projectSdt(pmNode);
+      return projectBlockSdt(pmNode);
     case 'sectionBreak':
       return projectSectionBreak(pmNode);
     case 'pageBreak':
@@ -591,11 +591,31 @@ function projectToc(pmNode: ProseMirrorNode): SDToc {
 }
 
 // ---------------------------------------------------------------------------
-// SDT
+// SDT (block + inline)
 // ---------------------------------------------------------------------------
 
-function projectSdt(pmNode: ProseMirrorNode): SDSdt {
-  const attrs = pmNode.attrs;
+const LOCK_MODE_TO_SDT_LOCK: Record<string, SDSdt['sdt']['lock']> = {
+  unlocked: 'none',
+  sdtLocked: 'sdt',
+  contentLocked: 'content',
+  sdtContentLocked: 'both',
+};
+
+function extractSdtMetadata(attrs: Record<string, unknown>): Omit<SDSdt['sdt'], 'content' | 'inlines' | 'scope'> {
+  const lock = LOCK_MODE_TO_SDT_LOCK[attrs.lockMode as string];
+  const controlType = attrs.controlType ?? attrs.type;
+
+  return {
+    ...(attrs.tag ? { tag: attrs.tag as string } : {}),
+    ...(attrs.alias ? { alias: attrs.alias as string } : {}),
+    ...(typeof controlType === 'string' ? { type: controlType } : {}),
+    ...(attrs.appearance ? { appearance: attrs.appearance as string } : {}),
+    ...(attrs.placeholder ? { placeholder: attrs.placeholder as string } : {}),
+    ...(lock && lock !== 'none' ? { lock } : {}),
+  };
+}
+
+function projectBlockSdt(pmNode: ProseMirrorNode): SDSdt {
   const children: SDContentNode[] = [];
   pmNode.forEach((child) => {
     children.push(projectBlock(child));
@@ -603,11 +623,25 @@ function projectSdt(pmNode: ProseMirrorNode): SDSdt {
 
   return {
     kind: 'sdt',
-    id: resolveNodeId(pmNode),
+    id: resolveSdtNodeId(pmNode),
     sdt: {
-      ...(attrs?.tag ? { tag: attrs.tag } : {}),
-      ...(attrs?.alias ? { alias: attrs.alias } : {}),
+      ...extractSdtMetadata(pmNode.attrs ?? {}),
+      scope: 'block',
       ...(children.length > 0 ? { content: children } : {}),
+    },
+  };
+}
+
+function projectInlineSdt(pmNode: ProseMirrorNode): SDSdt {
+  const inlines = projectInlineChildren(pmNode);
+
+  return {
+    kind: 'sdt',
+    id: resolveSdtNodeId(pmNode),
+    sdt: {
+      ...extractSdtMetadata(pmNode.attrs ?? {}),
+      scope: 'inline',
+      ...(inlines.length > 0 ? { inlines } : {}),
     },
   };
 }
@@ -700,6 +734,8 @@ function projectInline(pmNode: ProseMirrorNode): SDInlineNode {
       return projectEndnoteRef(pmNode);
     case 'field':
       return projectInlineField(pmNode);
+    case 'structuredContent':
+      return projectInlineSdt(pmNode);
     default:
       return projectInlineFallback(pmNode);
   }
@@ -1001,6 +1037,15 @@ function projectInlineFallback(pmNode: ProseMirrorNode): SDRun {
 
 function resolveNodeId(pmNode: ProseMirrorNode): string | undefined {
   const id = pmNode.attrs?.sdBlockId;
+  return typeof id === 'string' && id.length > 0 ? id : undefined;
+}
+
+function resolveSdtNodeId(pmNode: ProseMirrorNode): string | undefined {
+  const attrs = pmNode.attrs ?? {};
+  // SDT nodes use `id` as their canonical identifier (target-resolution matches on attrs.id).
+  // Fall back to sdBlockId for nodes materialised through the structural write engine.
+  const id = attrs.id ?? attrs.sdBlockId;
+  if (typeof id === 'number') return String(id);
   return typeof id === 'string' && id.length > 0 ? id : undefined;
 }
 

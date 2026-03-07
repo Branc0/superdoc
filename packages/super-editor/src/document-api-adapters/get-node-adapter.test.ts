@@ -82,6 +82,43 @@ function buildBlockIndexFromParagraph(paragraph: ProseMirrorNode, nodeId: string
   return { candidates: [candidate], byId };
 }
 
+describe('getNodeAdapter — inline SDT', () => {
+  it('resolves inline structuredContent as SDSdt (not SDRun)', () => {
+    const textChild = createNode('text', [], { text: 'sdt text' });
+    const sdtNode = createNode('structuredContent', [textChild], {
+      isInline: true,
+      attrs: { id: 42, tag: 'test-tag', alias: 'Test', controlType: 'text', lockMode: 'contentLocked' },
+    });
+    const paragraph = createNode('paragraph', [sdtNode], {
+      attrs: { sdBlockId: 'p-sdt' },
+      isBlock: true,
+      inlineContent: true,
+    });
+    const doc = createNode('doc', [paragraph], { isBlock: false });
+
+    const editor = makeEditor(doc);
+    const blockIndex = buildBlockIndexFromParagraph(paragraph, 'p-sdt');
+    const inlineIndex = buildInlineIndex(editor, blockIndex);
+    const sdtCandidate = findInlineByType(inlineIndex, 'sdt')[0];
+    if (!sdtCandidate) throw new Error('Expected sdt candidate');
+
+    const result = getNodeAdapter(editor, {
+      kind: 'inline',
+      nodeType: 'sdt',
+      anchor: sdtCandidate.anchor,
+    });
+
+    expect(result.node.kind).toBe('sdt');
+    expect(result.address.kind).toBe('inline');
+
+    const sdt = result.node as import('@superdoc/document-api').SDSdt;
+    expect(sdt.sdt.tag).toBe('test-tag');
+    expect(sdt.sdt.type).toBe('text');
+    expect(sdt.sdt.lock).toBe('content');
+    expect(sdt.sdt.scope).toBe('inline');
+  });
+});
+
 describe('getNodeAdapter — inline', () => {
   it('resolves inline images by anchor', () => {
     const textNode = createNode('text', [], { text: 'Hi' });

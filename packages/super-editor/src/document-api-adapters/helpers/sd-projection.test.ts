@@ -2,9 +2,10 @@ import { beforeAll, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { initTestEditor, loadTestDataForEditorTests } from '@tests/helpers/helpers.js';
 import type { Editor } from '../../core/Editor.js';
 import { projectContentNode, projectInlineNode, projectDocument } from './sd-projection.js';
-import { executeStructuralInsert } from '../structural-write-engine/index.js';
+import { executeStructuralInsert, materializeFragment } from '../structural-write-engine/index.js';
+import { sdFindAdapter } from '../find-adapter.js';
 import { markdownToPmFragment } from '../../core/helpers/markdown/markdownToPmContent.js';
-import type { SDFragment, SDParagraph, SDHeading, SDTable, SDRun, SDHyperlink } from '@superdoc/document-api';
+import type { SDFragment, SDParagraph, SDHeading, SDTable, SDRun, SDHyperlink, SDSdt } from '@superdoc/document-api';
 
 let docData: Awaited<ReturnType<typeof loadTestDataForEditorTests>>;
 
@@ -201,6 +202,74 @@ describe('projectInlineNode', () => {
     expect(projected.kind).toBe('run');
     expect(projected.run.text).toBe('inline text');
   });
+
+  it('projects a structuredContent node as SDSdt with inlines', () => {
+    // Build a PM structuredContent node directly via schema
+    const schema = editor.state.schema;
+    const scType = schema.nodes.structuredContent;
+    if (!scType) return; // skip if schema doesn't have the extension
+
+    const runType = schema.nodes.run;
+    const textNode = schema.text('sdt text');
+    const runNode = runType ? runType.create({}, textNode) : textNode;
+
+    const sdtNode = scType.create(
+      {
+        id: 42,
+        tag: 'my-tag',
+        alias: 'My Alias',
+        controlType: 'text',
+        lockMode: 'contentLocked',
+        appearance: 'boundingBox',
+        placeholder: 'Enter text',
+      },
+      [runNode],
+    );
+
+    const projected = projectInlineNode(sdtNode) as SDSdt;
+    expect(projected.kind).toBe('sdt');
+    expect(projected.id).toBe('42');
+    expect(projected.sdt.tag).toBe('my-tag');
+    expect(projected.sdt.alias).toBe('My Alias');
+    expect(projected.sdt.type).toBe('text');
+    expect(projected.sdt.lock).toBe('content');
+    expect(projected.sdt.appearance).toBe('boundingBox');
+    expect(projected.sdt.placeholder).toBe('Enter text');
+    expect(projected.sdt.scope).toBe('inline');
+    expect(projected.sdt.inlines).toBeDefined();
+    expect(projected.sdt.inlines!.length).toBeGreaterThan(0);
+    expect(projected.sdt.content).toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// projectContentNode — block SDT metadata
+// ---------------------------------------------------------------------------
+
+describe('projectContentNode — block SDT', () => {
+  it('projects a structuredContentBlock with full metadata', () => {
+    const schema = editor.state.schema;
+    const scbType = schema.nodes.structuredContentBlock;
+    if (!scbType) return;
+
+    const paraType = schema.nodes.paragraph;
+    const textNode = schema.text('block sdt');
+    const para = paraType.create({}, [textNode]);
+    const sdtBlock = scbType.create(
+      { id: 99, tag: 'block-tag', alias: 'Block Alias', controlType: 'group', lockMode: 'sdtContentLocked' },
+      [para],
+    );
+
+    const projected = projectContentNode(sdtBlock) as SDSdt;
+    expect(projected.kind).toBe('sdt');
+    expect(projected.id).toBe('99');
+    expect(projected.sdt.tag).toBe('block-tag');
+    expect(projected.sdt.type).toBe('group');
+    expect(projected.sdt.lock).toBe('both');
+    expect(projected.sdt.scope).toBe('block');
+    expect(projected.sdt.content).toBeDefined();
+    expect(projected.sdt.inlines).toBeUndefined();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -297,5 +366,105 @@ describe('projectDocument', () => {
     if (hasBold) {
       expect(run.run.props?.bold).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// sdFindAdapter — inline SDT projection
+// ---------------------------------------------------------------------------
+
+describe('sdFindAdapter — inline SDT node.kind', () => {
+  it('returns kind "sdt" for inline structuredContent nodes', () => {
+    const schema = editor.state.schema;
+    if (!schema.nodes.structuredContent) return;
+
+    // Insert a paragraph containing an inline SDT via the structural write engine
+    executeStructuralInsert(editor, {
+      content: {
+        kind: 'paragraph',
+        id: 'p-find-sdt',
+        paragraph: {
+          inlines: [
+            {
+              kind: 'sdt',
+              id: '777',
+              sdt: {
+                tag: 'find-test',
+                type: 'text',
+                scope: 'inline',
+                inlines: [{ kind: 'run', run: { text: 'inside sdt' } }],
+              },
+            } as any,
+          ],
+        },
+      } as any,
+    });
+
+    const result = sdFindAdapter(editor, {
+      select: { type: 'node', nodeKind: 'sdt' },
+    });
+
+    const inlineItem = result.items.find((item) => item.address.kind === 'inline');
+    expect(inlineItem).toBeDefined();
+    expect(inlineItem!.node.kind).toBe('sdt');
+
+    const sdt = inlineItem!.node as SDSdt;
+    expect(sdt.sdt.tag).toBe('find-test');
+    expect(sdt.sdt.type).toBe('text');
+    expect(sdt.sdt.scope).toBe('inline');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Inline SDT round-trip: project → materialize → project
+// ---------------------------------------------------------------------------
+
+describe('inline SDT round-trip', () => {
+  it('materializes a projected inline SDSdt back to structuredContent PM node', () => {
+    const schema = editor.state.schema;
+    if (!schema.nodes.structuredContent) return;
+
+    const sdtFragment: SDFragment = {
+      kind: 'paragraph',
+      id: 'sdt-rt-para',
+      paragraph: {
+        inlines: [
+          {
+            kind: 'sdt',
+            id: '888',
+            sdt: {
+              tag: 'rt-tag',
+              type: 'text',
+              lock: 'content',
+              scope: 'inline',
+              inlines: [{ kind: 'run', run: { text: 'round trip' } }],
+            },
+          } as any,
+        ],
+      },
+    } as any;
+
+    const pmFragment = materializeFragment(schema, sdtFragment);
+    const para = pmFragment.child(0);
+    expect(para.type.name).toBe('paragraph');
+
+    // Find the structuredContent child
+    let scNode: import('prosemirror-model').Node | undefined;
+    para.forEach((child) => {
+      if (child.type.name === 'structuredContent') scNode = child;
+    });
+
+    expect(scNode).toBeDefined();
+    expect(scNode!.attrs.tag).toBe('rt-tag');
+    expect(scNode!.attrs.controlType).toBe('text');
+    expect(scNode!.attrs.lockMode).toBe('contentLocked');
+
+    // Project back and verify shape is preserved
+    const projected = projectInlineNode(scNode!) as SDSdt;
+    expect(projected.kind).toBe('sdt');
+    expect(projected.sdt.tag).toBe('rt-tag');
+    expect(projected.sdt.type).toBe('text');
+    expect(projected.sdt.lock).toBe('content');
+    expect(projected.sdt.scope).toBe('inline');
   });
 });

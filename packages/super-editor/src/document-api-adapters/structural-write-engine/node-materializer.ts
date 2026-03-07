@@ -51,6 +51,7 @@ const CONTENT_CAPABILITIES: ReadonlyMap<string, KindCapability> = new Map([
   ['break', { insert: true, replace: false, mutate: false }],
   ['drawing', { insert: 'partial', replace: 'partial', mutate: 'partial' }],
   ['field', { insert: 'raw-gated', replace: false, mutate: false }],
+  ['sdt', { insert: true, replace: true, mutate: true }],
 ]);
 
 const INLINE_CAPABILITIES: ReadonlyMap<string, KindCapability> = new Map([
@@ -70,6 +71,7 @@ const INLINE_CAPABILITIES: ReadonlyMap<string, KindCapability> = new Map([
   ['image', { insert: true, replace: true, mutate: true }],
   ['drawing', { insert: 'partial', replace: 'partial', mutate: 'partial' }],
   ['field', { insert: 'raw-gated', replace: false, mutate: false }],
+  ['sdt', { insert: true, replace: true, mutate: true }],
 ]);
 
 // ---------------------------------------------------------------------------
@@ -686,6 +688,27 @@ function materializeField(
   return nodeType.create(attrs);
 }
 
+const SDT_LOCK_TO_LOCK_MODE: Record<string, string> = {
+  none: 'unlocked',
+  sdt: 'sdtLocked',
+  content: 'contentLocked',
+  both: 'sdtContentLocked',
+};
+
+function buildSdtAttrsFromPayload(payload: any): Record<string, unknown> {
+  const attrs: Record<string, unknown> = {};
+  if (payload.tag) attrs.tag = payload.tag;
+  if (payload.alias) attrs.alias = payload.alias;
+  if (payload.type) attrs.controlType = payload.type;
+  if (payload.appearance) attrs.appearance = payload.appearance;
+  if (payload.placeholder) attrs.placeholder = payload.placeholder;
+  if (payload.lock) {
+    const lockMode = SDT_LOCK_TO_LOCK_MODE[payload.lock];
+    if (lockMode) attrs.lockMode = lockMode;
+  }
+  return attrs;
+}
+
 function materializeSdt(
   schema: Schema,
   node: SDContentNode,
@@ -699,18 +722,37 @@ function materializeSdt(
     materializeNode(schema, child as SDContentNode, seenIds, existingDocIds, operation, options),
   );
 
-  const nodeType = schema.nodes.sdt;
+  const nodeType = schema.nodes.structuredContentBlock ?? schema.nodes.sdt;
   if (!nodeType) {
     return schema.nodes.paragraph.create({
       sdBlockId: resolveBlockId(node as any, seenIds, existingDocIds),
     });
   }
+  const resolvedId = resolveBlockId(node as any, seenIds, existingDocIds);
   const attrs: Record<string, unknown> = {
-    sdBlockId: resolveBlockId(node as any, seenIds, existingDocIds),
+    ...buildSdtAttrsFromPayload(payload),
+    id: resolvedId,
+    sdBlockId: resolvedId,
   };
-  if (payload.tag) attrs.tag = payload.tag;
-  if (payload.alias) attrs.alias = payload.alias;
   return nodeType.create(attrs, children.length > 0 ? children : undefined);
+}
+
+function materializeInlineSdt(
+  schema: Schema,
+  node: any,
+  operation: SDWriteOp,
+  options?: { rawMode?: boolean },
+): ProseMirrorNode | ProseMirrorNode[] {
+  const payload = resolvePayload(node, 'sdt');
+  const nodeType = schema.nodes.structuredContent;
+  if (!nodeType) return materializeInlineFallback(schema, node);
+
+  const children = materializeInlineContent(schema, payload.inlines ?? payload.content, operation, options);
+  const attrs: Record<string, unknown> = {
+    ...buildSdtAttrsFromPayload(payload),
+    id: node.id ?? null,
+  };
+  return nodeType.create(attrs, children);
 }
 
 function materializeFallback(
@@ -788,6 +830,8 @@ function materializeInlineNode(
     case 'footnoteRef':
     case 'endnoteRef':
       return materializeNoteRef(schema, node, kind);
+    case 'sdt':
+      return materializeInlineSdt(schema, node, operation, options);
     default:
       return materializeInlineFallback(schema, node);
   }

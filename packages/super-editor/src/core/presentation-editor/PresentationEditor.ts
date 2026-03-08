@@ -2762,7 +2762,12 @@ export class PresentationEditor extends EventEmitter {
     // These changes mutate translatedLinkedStyles directly and need a full re-render
     // so the style-engine picks up the updated default properties.
     const handleStylesDefaultsChanged = () => {
+      // Stylesheet default mutations can change block conversion output even
+      // when PM JSON is unchanged (e.g., default run color/font). Cached flow
+      // blocks must be invalidated so toFlowBlocks recomputes with new defaults.
+      this.#flowBlockCache.clear();
       this.#pendingDocChange = true;
+      this.#selectionSync.onLayoutStart();
       this.#scheduleRerender();
     };
     this.#editor.on('stylesDefaultsChanged', handleStylesDefaultsChanged);
@@ -2783,23 +2788,6 @@ export class PresentationEditor extends EventEmitter {
     this.#editorListeners.push({
       event: 'collaborationReady',
       handler: handleCollaborationReady as (...args: unknown[]) => void,
-    });
-
-    // Handle remote header/footer changes from collaborators
-    const handleRemoteHeaderFooterChanged = (payload: {
-      type: 'header' | 'footer';
-      sectionId: string;
-      content: unknown;
-    }) => {
-      this.#headerFooterSession?.adapter?.invalidate(payload.sectionId);
-      this.#headerFooterSession?.manager?.refresh();
-      this.#pendingDocChange = true;
-      this.#scheduleRerender();
-    };
-    this.#editor.on('remoteHeaderFooterChanged', handleRemoteHeaderFooterChanged);
-    this.#editorListeners.push({
-      event: 'remoteHeaderFooterChanged',
-      handler: handleRemoteHeaderFooterChanged as (...args: unknown[]) => void,
     });
 
     // Listen for comment selection changes to update Layout Engine highlighting

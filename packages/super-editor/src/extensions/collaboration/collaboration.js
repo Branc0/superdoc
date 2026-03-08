@@ -2,7 +2,12 @@ import { Extension } from '@core/index.js';
 import { PluginKey } from 'prosemirror-state';
 import { encodeStateAsUpdate } from 'yjs';
 import { ySyncPlugin, ySyncPluginKey, yUndoPluginKey, prosemirrorToYDoc } from 'y-prosemirror';
-import { updateYdocDocxData, applyRemoteHeaderFooterChanges } from '@extensions/collaboration/collaboration-helpers.js';
+import {
+  isCollaborationProviderSynced,
+  onCollaborationProviderSynced,
+} from '../../core/helpers/collaboration-provider-sync.js';
+import { bootstrapPartSync } from './part-sync/index.js';
+import { seedPartsFromEditor } from './part-sync/seed-parts.js';
 
 export const CollaborationPluginKey = new PluginKey('collaboration');
 const headlessBindingStateByEditor = new WeakMap();
@@ -41,48 +46,52 @@ export const Collaboration = Extension.create({
     this.options.ydoc = this.editor.options.ydoc;
 
     initSyncListener(this.options.ydoc, this.editor, this);
-    const documentListenerCleanup = initDocumentListener({ ydoc: this.options.ydoc, editor: this.editor });
 
     const [syncPlugin, fragment] = createSyncPlugin(this.options.ydoc, this.editor);
     this.options.fragment = fragment;
 
-    const metaMap = this.options.ydoc.getMap('media');
-    const metaMapObserver = (event) => {
+    const mediaMap = this.options.ydoc.getMap('media');
+    const mediaMapObserver = (event) => {
       event.changes.keys.forEach((_, key) => {
         if (!(key in this.editor.storage.image.media)) {
-          const fileData = metaMap.get(key);
+          const fileData = mediaMap.get(key);
           this.editor.storage.image.media[key] = fileData;
         }
       });
     };
-    metaMap.observe(metaMapObserver);
-
-    // Observer for remote header/footer JSON changes
-    const headerFooterMap = this.options.ydoc.getMap('headerFooterJson');
-    const headerFooterMapObserver = (event) => {
-      // Only process remote changes (not our own)
-      if (event.transaction.local) return;
-
-      event.changes.keys.forEach((change, key) => {
-        if (change.action === 'add' || change.action === 'update') {
-          const data = headerFooterMap.get(key);
-          if (data) {
-            applyRemoteHeaderFooterChanges(this.editor, key, data);
-          }
-        }
-      });
-    };
-    headerFooterMap.observe(headerFooterMapObserver);
+    mediaMap.observe(mediaMapObserver);
 
     // Store cleanup references in a non-reactive WeakMap (NOT this.options)
     // to avoid Vue's deep traverse hitting circular references in Y.js Maps.
-    collaborationCleanupByEditor.set(this.editor, {
-      metaMap,
-      metaMapObserver,
-      headerFooterMap,
-      headerFooterMapObserver,
-      documentListenerCleanup,
-    });
+    const cleanupState = {
+      mediaMap,
+      mediaMapObserver,
+      partSyncHandle: null,
+      partSyncPendingCleanup: null,
+    };
+    collaborationCleanupByEditor.set(this.editor, cleanupState);
+
+    // Bootstrap part-sync (publisher + consumer) — always active.
+    // Requires a full editor with event emitter — skip for minimal test mocks.
+    // Deferred until provider is synced so Yjs state is available for
+    // capability detection and migration.
+    const hasEventEmitter = typeof this.editor.on === 'function';
+
+    if (hasEventEmitter) {
+      const editor = this.editor;
+      const ydoc = this.options.ydoc;
+      const doBootstrap = () => {
+        if (editor.isDestroyed) return;
+        cleanupState.partSyncHandle = bootstrapPartSync(editor, ydoc);
+      };
+
+      const provider = editor.options.collaborationProvider;
+      if (!provider) {
+        doBootstrap();
+      } else {
+        cleanupState.partSyncPendingCleanup = onCollaborationProviderSynced(provider, doBootstrap);
+      }
+    }
 
     // Headless editors don't create an EditorView, so wire Y.js binding lifecycle here.
     // Doing this in addPmPlugins ensures sync hooks are active before the first local transaction.
@@ -106,12 +115,12 @@ export const Collaboration = Extension.create({
     const cleanup = collaborationCleanupByEditor.get(this.editor);
     if (!cleanup) return;
 
-    // Clean up Y.js map observers to prevent memory leaks
-    cleanup.metaMap.unobserve(cleanup.metaMapObserver);
-    cleanup.headerFooterMap.unobserve(cleanup.headerFooterMapObserver);
+    // Clean up Y.js media map observer
+    cleanup.mediaMap.unobserve(cleanup.mediaMapObserver);
 
-    // Clean up ydoc afterTransaction listener and debounce timer
-    cleanup.documentListenerCleanup();
+    // Clean up part-sync publisher/consumer (or pending sync listener)
+    cleanup.partSyncHandle?.destroy();
+    cleanup.partSyncPendingCleanup?.();
 
     collaborationCleanupByEditor.delete(this.editor);
   },
@@ -140,9 +149,24 @@ export const createSyncPlugin = (ydoc, editor) => {
   return [ySyncPlugin(fragment, { onFirstRender }), fragment];
 };
 
+/**
+ * Seed non-document parts and media into the Yjs maps for a new room.
+ *
+ * Parts are seeded via `seedPartsFromEditor` (writes to `parts` map with
+ * capability marker). Media and bootstrap metadata are written separately.
+ */
 export const initializeMetaMap = (ydoc, editor) => {
+  // 1. Seed non-document parts into Yjs parts map
+  seedPartsFromEditor(editor, ydoc);
+
+  // 2. Seed media files
+  const mediaMap = ydoc.getMap('media');
+  Object.entries(editor.options.mediaFiles).forEach(([key, value]) => {
+    mediaMap.set(key, value);
+  });
+
+  // 3. Bootstrap metadata
   const metaMap = ydoc.getMap('meta');
-  metaMap.set('docx', editor.options.content);
   metaMap.set('fonts', editor.options.fonts);
   metaMap.set('bootstrap', {
     version: 1,
@@ -150,110 +174,6 @@ export const initializeMetaMap = (ydoc, editor) => {
     seededAt: new Date().toISOString(),
     source: 'browser',
   });
-
-  const mediaMap = ydoc.getMap('media');
-  Object.entries(editor.options.mediaFiles).forEach(([key, value]) => {
-    mediaMap.set(key, value);
-  });
-};
-
-const checkDocxChanged = (transaction) => {
-  if (!transaction.changed) return false;
-
-  for (const [, value] of transaction.changed.entries()) {
-    if (value instanceof Set && value.has('docx')) {
-      return true;
-    }
-  }
-
-  return false;
-};
-
-// Stores the debounced update cancel function per editor so replaceFile
-// can cancel pending debounced exports after doing its own direct export.
-const debouncedDocxUpdateByEditor = new WeakMap();
-
-/**
- * Cancel any pending debounced updateYdocDocxData call for the given editor.
- * Called from replaceFile to prevent stale debounced exports from running
- * after the direct export has already been done.
- *
- * @param {Editor} editor
- */
-export const cancelDebouncedDocxUpdate = (editor) => {
-  const cancel = debouncedDocxUpdateByEditor.get(editor);
-  if (cancel) cancel();
-};
-
-const initDocumentListener = ({ ydoc, editor }) => {
-  // 30s debounce: the actual document content syncs in real-time via
-  // y-prosemirror's XmlFragment. This DOCX blob is supplementary data
-  // (for new joiners' converter setup). Writing it every 1s generates
-  // large Y.js updates (full DOCX XML) that accumulate as Y.Map
-  // tombstones, gradually growing the room's stored data until
-  // Liveblocks rejects connections with code 1011.
-  const debouncedUpdate = debounce(
-    (editor) => {
-      updateYdocDocxData(editor);
-    },
-    30000,
-    { maxWait: 60000 },
-  );
-
-  debouncedDocxUpdateByEditor.set(editor, () => debouncedUpdate.cancel());
-
-  const afterTransactionHandler = (transaction) => {
-    const { local } = transaction;
-
-    const hasChangedDocx = checkDocxChanged(transaction);
-    if (!hasChangedDocx && transaction.changed?.size && local) {
-      debouncedUpdate(editor);
-    }
-  };
-
-  ydoc.on('afterTransaction', afterTransactionHandler);
-
-  // Return cleanup function
-  return () => {
-    ydoc.off('afterTransaction', afterTransactionHandler);
-    debouncedUpdate.cancel();
-    debouncedDocxUpdateByEditor.delete(editor);
-  };
-};
-
-const debounce = (fn, wait, { maxWait } = {}) => {
-  let timeout = null;
-  let maxTimeout = null;
-  let latestArgs = null;
-
-  const invoke = () => {
-    clearTimeout(timeout);
-    clearTimeout(maxTimeout);
-    timeout = null;
-    maxTimeout = null;
-    const args = latestArgs;
-    latestArgs = null;
-    if (args !== null) fn(...args);
-  };
-
-  const debounced = (...args) => {
-    latestArgs = args;
-    clearTimeout(timeout);
-    timeout = setTimeout(invoke, wait);
-    if (maxWait != null && maxTimeout == null) {
-      maxTimeout = setTimeout(invoke, maxWait);
-    }
-  };
-
-  debounced.cancel = () => {
-    clearTimeout(timeout);
-    clearTimeout(maxTimeout);
-    timeout = null;
-    maxTimeout = null;
-    latestArgs = null;
-  };
-
-  return debounced;
 };
 
 const initSyncListener = (ydoc, editor, extension) => {
@@ -262,23 +182,22 @@ const initSyncListener = (ydoc, editor, extension) => {
 
   const emit = () => {
     extension.options.isReady = true;
-    provider.off('synced', emit);
     editor.emit('collaborationReady', { editor, ydoc });
   };
 
-  if (provider.synced) {
+  if (isCollaborationProviderSynced(provider)) {
     setTimeout(() => {
       emit();
     }, 250);
     return;
   }
-  provider.on('synced', emit);
+
+  onCollaborationProviderSynced(provider, emit);
 };
 
 export const generateCollaborationData = async (editor) => {
   const ydoc = prosemirrorToYDoc(editor.state.doc, 'supereditor');
   initializeMetaMap(ydoc, editor);
-  await updateYdocDocxData(editor, ydoc);
   return encodeStateAsUpdate(ydoc);
 };
 

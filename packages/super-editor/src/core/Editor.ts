@@ -34,9 +34,10 @@ import {
 import { AnnotatorHelpers } from '@helpers/annotator.js';
 import { prepareCommentsForExport, prepareCommentsForImport } from '@extensions/comment/comments-helpers.js';
 import DocxZipper from '@core/DocxZipper.js';
-import { generateCollaborationData, cancelDebouncedDocxUpdate } from '@extensions/collaboration/collaboration.js';
+import { generateCollaborationData } from '@extensions/collaboration/collaboration.js';
+import { seedPartsFromEditor } from '@extensions/collaboration/part-sync/seed-parts.js';
+import { onCollaborationProviderSynced } from './helpers/collaboration-provider-sync.js';
 import { useHighContrastMode } from '../composables/use-high-contrast-mode.js';
-import { updateYdocDocxData } from '@extensions/collaboration/collaboration-helpers.js';
 import { setImageNodeSelection } from './helpers/setImageNodeSelection.js';
 import { canRenderFont } from './helpers/canRenderFont.js';
 import {
@@ -60,6 +61,7 @@ import { Telemetry, COMMUNITY_LICENSE_KEY } from '@superdoc/common';
 import type { DocumentApi } from '@superdoc/document-api';
 import { createDocumentApi } from '@superdoc/document-api';
 import { getDocumentApiAdapters } from '../document-api-adapters/index.js';
+import { initPartsRuntime } from './parts/init-parts-runtime.js';
 
 declare const __APP_VERSION__: string;
 declare const version: string | undefined;
@@ -839,6 +841,7 @@ export class Editor extends EventEmitter<EditorEventMap> {
 
       // Create converter
       this.#createConverter();
+      initPartsRuntime(this);
 
       // Initialize media
       this.#initMedia();
@@ -981,6 +984,7 @@ export class Editor extends EventEmitter<EditorEventMap> {
     this.#createCommandService();
     this.#createSchema();
     this.#createConverter();
+    initPartsRuntime(this);
     this.#initMedia();
 
     this.on('beforeCreate', this.options.onBeforeCreate!);
@@ -1489,21 +1493,14 @@ export class Editor extends EventEmitter<EditorEventMap> {
 
   /**
    * Initialize data for collaborative editing
-   * If we are replacing data and have a valid provider, listen for synced event
-   * so that we can initialize the data
+   * If we are replacing data and have a valid provider, wait for provider sync
+   * before inserting data into the shared Yjs document.
    */
   initializeCollaborationData(): void {
     if (!this.options.isNewFile || !this.options.collaborationProvider) return;
-    const provider = this.options.collaborationProvider;
-
-    const postSyncInit = () => {
-      provider.off?.('synced', postSyncInit);
+    onCollaborationProviderSynced(this.options.collaborationProvider, () => {
       this.#insertNewFileData();
-    };
-
-    if (provider.synced) this.#insertNewFileData();
-    // If we are not sync'd yet, wait for the event then insert the data
-    else provider.on?.('synced', postSyncInit);
+    });
   }
 
   /**
@@ -1521,6 +1518,7 @@ export class Editor extends EventEmitter<EditorEventMap> {
     this.initDefaultStyles();
 
     this.#createConverter();
+    initPartsRuntime(this);
     this.#initMedia();
 
     const doc = this.#generatePmData();
@@ -2122,7 +2120,6 @@ export class Editor extends EventEmitter<EditorEventMap> {
 
     if (!this.options.isNewFile) {
       this.#initComments();
-      updateYdocDocxData(this, this.options.ydoc);
     }
   }
 
@@ -3208,16 +3205,64 @@ export class Editor extends EventEmitter<EditorEventMap> {
     this.options.replacedFile = true;
 
     this.#createConverter();
+    initPartsRuntime(this);
     this.#initMedia();
     this.initDefaultStyles();
 
     if (this.options.ydoc && this.options.collaborationProvider) {
-      // Cancel any pending debounced docx update — we are about to do a
-      // fresh export with the new file data. Without cancel, the debounced
-      // export from the previous transaction cycle could fire redundantly.
-      cancelDebouncedDocxUpdate(this);
-      await updateYdocDocxData(this, this.options.ydoc);
-      this.initializeCollaborationData();
+      const ydoc = this.options.ydoc as import('yjs').Doc;
+      const provider = this.options.collaborationProvider;
+
+      const doReplaceFileSync = () => {
+        const mediaFiles = this.options.mediaFiles ?? {};
+
+        // 1. Insert new PM doc into Y fragment (must happen first)
+        this.#insertNewFileData();
+
+        // 2. Seed parts from new converter snapshot (prunes stale parts)
+        seedPartsFromEditor(this, ydoc, { replaceExisting: true });
+
+        // 3. Replace media map (prune stale + upsert new)
+        const mediaMap = ydoc.getMap('media');
+        for (const key of mediaMap.keys()) {
+          if (!(key in mediaFiles)) mediaMap.delete(key);
+        }
+        Object.entries(mediaFiles).forEach(([key, value]) => {
+          mediaMap.set(key, value);
+        });
+      };
+
+      const SYNC_TIMEOUT_MS = 10_000;
+
+      await new Promise<void>((resolve, reject) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        let settled = false;
+
+        const cleanup = onCollaborationProviderSynced(provider, () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          try {
+            doReplaceFileSync();
+            resolve();
+          } catch (error) {
+            reject(error);
+          }
+        });
+
+        if (!settled) {
+          timer = setTimeout(() => {
+            settled = true;
+            cleanup();
+            reject(
+              new Error(
+                `replaceFile(): collaboration provider did not sync within ${SYNC_TIMEOUT_MS}ms. ` +
+                  `The provider exposes on/off but never emitted sync(true) or synced.`,
+              ),
+            );
+          }, SYNC_TIMEOUT_MS);
+        }
+      });
     } else {
       this.#insertNewFileData();
     }

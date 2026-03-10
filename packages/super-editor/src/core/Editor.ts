@@ -2,6 +2,7 @@ import type { EditorState, Transaction, Plugin } from 'prosemirror-state';
 import { Transform } from 'prosemirror-transform';
 import type { EditorView as PmEditorView } from 'prosemirror-view';
 import type { Node as PmNode, Schema } from 'prosemirror-model';
+import type { Doc as YDoc } from 'yjs';
 import type { EditorOptions, User, FieldValue, DocxFileEntry } from './types/EditorConfig.js';
 import type { EditorHelpers, ExtensionStorage, ProseMirrorJSON, PageStyles, Toolbar } from './types/EditorTypes.js';
 import type { ChainableCommandObject, CanObject, EditorCommands } from './types/ChainedCommands.js';
@@ -1535,9 +1536,25 @@ export class Editor extends EventEmitter<EditorEventMap> {
     if (!this.options.isNewFile) return;
     this.options.isNewFile = false;
     const doc = this.#generatePmData();
+    const nextBodySectPr = JSON.parse(JSON.stringify(doc.attrs?.bodySectPr ?? null));
     // hiding this transaction from history so it doesn't appear in undo stack
     const tr = this.state.tr.replaceWith(0, this.state.doc.content.size, doc).setMeta('addToHistory', false);
     this.#dispatchTransaction(tr);
+
+    const ydoc = this.options.ydoc as YDoc | null;
+    if (ydoc) {
+      ydoc.getMap('meta').set('bodySectPr', nextBodySectPr);
+    }
+
+    if (Object.keys(doc.attrs).length > 0) {
+      const attrsTr = this.state.tr
+        .setNodeMarkup(0, undefined, {
+          ...(this.state.doc.attrs ?? {}),
+          ...(doc.attrs ?? {}),
+        })
+        .setMeta('addToHistory', false);
+      this.#dispatchTransaction(attrsTr);
+    }
 
     setTimeout(() => {
       this.#initComments();

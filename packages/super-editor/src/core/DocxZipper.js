@@ -256,7 +256,7 @@ class DocxZipper {
     const beginningString = '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">';
     let updatedContentTypesXml = contentTypesXml.replace(beginningString, `${beginningString}${typesString}`);
 
-    // Remove Override elements for comment parts that no longer exist
+    // Remove Override elements for parts that no longer exist
     for (const partName of staleOverridePartNames) {
       const escapedPartName = partName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const overrideRegex = new RegExp(`\\s*<Override[^>]*PartName="${escapedPartName}"[^>]*/>`, 'g');
@@ -388,8 +388,11 @@ class DocxZipper {
     const unzippedOriginalDocx = await this.unzip(originalDocxFile);
     const filePromises = [];
     unzippedOriginalDocx.forEach((relativePath, zipEntry) => {
-      const promise = zipEntry.async('string').then((content) => {
-        unzippedOriginalDocx.file(zipEntry.name, content);
+      // Read as raw bytes to handle non-UTF-8 encodings (e.g. UTF-16 LE
+      // customXml parts). XML/rels files are decoded to valid UTF-8 strings;
+      // other entries are kept as raw bytes.
+      const promise = zipEntry.async('uint8array').then((u8) => {
+        unzippedOriginalDocx.file(zipEntry.name, isXmlLike(zipEntry.name) ? ensureXmlString(u8) : u8);
       });
       filePromises.push(promise);
     });

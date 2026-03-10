@@ -667,6 +667,20 @@ describe('mark application', () => {
       expect(run.letterSpacing).toBe(2);
     });
 
+    it('converts point-based letterSpacing strings to pixels', () => {
+      const run: TextRun = { text: 'Hello', fontFamily: 'Arial', fontSize: 12 };
+      applyTextStyleMark(run, { letterSpacing: '0.75pt' });
+
+      expect(run.letterSpacing).toBeCloseTo(ptToPx(0.75)!);
+    });
+
+    it('preserves negative letterSpacing strings', () => {
+      const run: TextRun = { text: 'Hello', fontFamily: 'Arial', fontSize: 12 };
+      applyTextStyleMark(run, { letterSpacing: '-0.65pt' });
+
+      expect(run.letterSpacing).toBeCloseTo(ptToPx(-0.65)!);
+    });
+
     it('applies multiple style attributes', () => {
       const run: TextRun = { text: 'Hello', fontFamily: 'Arial', fontSize: 12 };
       applyTextStyleMark(run, {

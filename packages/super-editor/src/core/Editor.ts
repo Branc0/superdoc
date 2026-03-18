@@ -65,8 +65,11 @@ import { getDocumentApiAdapters } from '../document-api-adapters/index.js';
 import { initPartsRuntime } from './parts/init-parts-runtime.js';
 import { syncPackageMetadata } from './opc/sync-package-metadata.js';
 
-declare const __APP_VERSION__: string;
+declare const __APP_VERSION__: string | undefined;
 declare const version: string | undefined;
+
+const CURRENT_APP_VERSION =
+  (typeof __APP_VERSION__ === 'string' && __APP_VERSION__) || (typeof version === 'string' && version) || '0.0.0';
 
 /**
  * Constants for layout calculations
@@ -805,22 +808,8 @@ export class Editor extends EventEmitter<EditorEventMap> {
           resolvedMode === 'docx' && !options?.content && !options?.html && !options?.markdown;
 
         if (shouldLoadBlankDocx) {
-          // Decode base64 blank.docx without fetch
-          const arrayBuffer = await getArrayBufferFromUrl(BLANK_DOCX_DATA_URI);
-          const isNodeRuntime = typeof process !== 'undefined' && !!process.versions?.node;
-          const canUseBuffer = isNodeRuntime && typeof Buffer !== 'undefined';
-          // Use Uint8Array to ensure compatibility with both Node Buffer and browser Blob
-          const uint8Array = new Uint8Array(arrayBuffer);
-          let fileSource: File | Blob | Buffer;
-          if (canUseBuffer) {
-            fileSource = Buffer.from(uint8Array);
-          } else if (typeof Blob !== 'undefined') {
-            fileSource = new Blob([uint8Array as BlobPart]);
-          } else {
-            throw new Error('Blob is not available to create blank DOCX');
-          }
-          const [docx, _media, mediaFiles, fonts] = (await Editor.loadXmlData(fileSource, canUseBuffer))!;
-          resolvedOptions.content = docx;
+          const { content, mediaFiles, fonts, fileSource } = await this.#loadBlankDocxTemplate();
+          resolvedOptions.content = content;
           resolvedOptions.mediaFiles = {
             ...mediaFiles,
             ...(options?.mediaFiles ?? {}),
@@ -1734,6 +1723,49 @@ export class Editor extends EventEmitter<EditorEventMap> {
         isNewFile: this.options.isNewFile ?? false,
       });
     }
+  }
+
+  async #loadBlankDocxTemplate(): Promise<{
+    content: DocxFileEntry[];
+    mediaFiles: Record<string, unknown>;
+    fonts: Record<string, unknown>;
+    fileSource: File | Blob | Buffer;
+  }> {
+    const arrayBuffer = await getArrayBufferFromUrl(BLANK_DOCX_DATA_URI);
+    const isNodeRuntime = typeof process !== 'undefined' && !!process.versions?.node;
+    const canUseBuffer = isNodeRuntime && typeof Buffer !== 'undefined';
+    const uint8Array = new Uint8Array(arrayBuffer);
+
+    let fileSource: File | Blob | Buffer;
+    if (canUseBuffer) {
+      fileSource = Buffer.from(uint8Array);
+    } else if (typeof Blob !== 'undefined') {
+      fileSource = new Blob([uint8Array as BlobPart]);
+    } else {
+      throw new Error('Blob is not available to create blank DOCX');
+    }
+
+    const [content, _media, mediaFiles, fonts] = (await Editor.loadXmlData(fileSource, canUseBuffer))!;
+    return { content, mediaFiles, fonts, fileSource };
+  }
+
+  async #getBaseDocxEntriesForExport(): Promise<DocxFileEntry[]> {
+    if (Array.isArray(this.options.content)) {
+      return this.options.content as DocxFileEntry[];
+    }
+
+    const blankDocx = await this.#loadBlankDocxTemplate();
+    this.options.content = blankDocx.content;
+    this.options.mediaFiles = {
+      ...blankDocx.mediaFiles,
+      ...(this.options.mediaFiles ?? {}),
+    };
+    this.options.fonts = {
+      ...blankDocx.fonts,
+      ...(this.options.fonts ?? {}),
+    };
+
+    return blankDocx.content;
   }
 
   /**
@@ -2808,8 +2840,13 @@ export class Editor extends EventEmitter<EditorEventMap> {
         return updatedDocs;
       }
 
+      const baseDocxEntries =
+        !this.options.fileSource && !Array.isArray(this.options.content)
+          ? await this.#getBaseDocxEntriesForExport()
+          : this.options.content;
+
       const result = await zipper.updateZip({
-        docx: this.options.content,
+        docx: baseDocxEntries,
         updatedDocs: updatedDocs,
         originalDocxFile: this.options.fileSource,
         media,
@@ -3221,7 +3258,7 @@ export class Editor extends EventEmitter<EditorEventMap> {
    * Process collaboration migrations
    */
   processCollaborationMigrations(): unknown | void {
-    console.debug('[checkVersionMigrations] Current editor version', __APP_VERSION__);
+    console.debug('[checkVersionMigrations] Current editor version', CURRENT_APP_VERSION);
     if (!this.options.ydoc) return;
 
     const metaMap = (this.options.ydoc as { getMap: (name: string) => Map<string, unknown> }).getMap('meta');

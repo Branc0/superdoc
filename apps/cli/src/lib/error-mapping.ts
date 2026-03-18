@@ -142,7 +142,14 @@ function mapTextMutationError(operationId: CliExposedOperationId, error: unknown
   const message = extractErrorMessage(error);
   const details = extractErrorDetails(error);
 
-  // Plan-engine errors pass through with original code and structured details
+  // For direct text-mutation commands, adapter INVALID_INPUT errors reflect CLI
+  // payload-shape issues (for example flat-flag shortcuts that did not
+  // normalize into a canonical target), so present them as INVALID_ARGUMENT.
+  if (code === 'INVALID_INPUT') {
+    return new CliError('INVALID_ARGUMENT', message, { operationId, details });
+  }
+
+  // Other plan-engine errors pass through with original code and structured details.
   const planEngineError = tryMapPlanEngineError(operationId, error, code);
   if (planEngineError) return planEngineError;
 

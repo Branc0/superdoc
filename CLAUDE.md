@@ -195,6 +195,28 @@ Pixel-level before/after comparison for documents that failed layout comparison.
 - Then `pnpm test:visual` to see pixel differences for changed docs
 - HTML report output in `devtools/visual-testing/results/`
 
+### Uploading Test Documents to Corpus
+
+Test documents for layout and visual tests are stored in R2. Rendering tests auto-discover all `.docx` files in the corpus — just upload a file and it becomes a test case.
+
+**Interactive** (prompts for issue ID and description):
+```bash
+pnpm corpus:upload ~/Downloads/my-file.docx
+```
+
+**Non-interactive** (for scripts and agents):
+```bash
+pnpm corpus:upload ~/Downloads/my-file.docx --issue SD-1234 --description short-kebab-desc
+```
+
+Files are uploaded to `rendering/<issue-id>-<description>.docx`. After uploading:
+```bash
+pnpm corpus:pull    # sync the new file locally
+pnpm test:visual    # verify it renders
+```
+
+One-time setup: `npx wrangler login` (for R2 access). If the token expires, run it again. Note: wrangler may write to `~/.wrangler/config/` while the corpus scripts read from `~/Library/Preferences/.wrangler/config/` — copy the token if you get auth errors after a fresh login.
+
 ## Brand & Design System
 
 Brand guidelines, voice, and design tokens live in `brand/`.

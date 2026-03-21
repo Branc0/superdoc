@@ -230,4 +230,4 @@ Preset theme overrides are defined in `packages/superdoc/src/assets/styles/helpe
 - Tokens are organized by layers: primitive (`--sd-color-blue-500`) → UI/document tokens (`--sd-ui-*`, `--sd-comments-*`, etc.) → component usage.
 - Expose UI component-specific variables as `--sd-ui-{component}-*` so consumers can customize via CSS.
 
-**When writing copy or content:** see `brand/brand-guidelines.md` for voice, tone, and the dual-register pattern (developer vs. leader). Product name is always **SuperDoc** (capital S, capital D).
+**When writing copy or content:** see `brand.md` for the full brand identity — strategy, voice, and visual guidelines. Product name is always **SuperDoc** (capital S, capital D).

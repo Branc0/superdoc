@@ -16,6 +16,7 @@ const createDropdownItem = (selectedKey) => ({
   dropdownStyles: ref({}),
   dropdownValueKey: ref('key'),
   selectedValue: ref(selectedKey),
+  hideLabel: ref(false),
   attributes: ref({ ariaLabel: 'Test dropdown' }),
   nestedOptions: ref([
     {
@@ -38,7 +39,7 @@ const mountWithItem = (item) =>
       toolbarItems: [item],
       overflowItems: [],
     },
-  });
+});
 
 describe('ButtonGroup dropdownOptions selected class', () => {
   it('does not mark render option as selected even when selectedValue matches', () => {
@@ -67,6 +68,17 @@ describe('ButtonGroup handleSelect', () => {
     dropdown.vm.$emit('select', 'plain-match', { key: 'plain-match', label: 'Plain option' });
 
     expect(item.label.value).toBe('Plain option');
+    expect(item.selectedValue.value).toBe('plain-match');
+  });
+
+  it('does not update trigger label when hideLabel is true (icon-only dropdown)', () => {
+    const item = { ...createDropdownItem(''), hideLabel: ref(true) };
+    const wrapper = mountWithItem(item);
+    const dropdown = wrapper.findComponent({ name: 'ToolbarDropdown' });
+
+    dropdown.vm.$emit('select', 'plain-match', { key: 'plain-match', label: 'Plain option' });
+    
+    expect(item.label.value).toBe('');
     expect(item.selectedValue.value).toBe('plain-match');
   });
 });

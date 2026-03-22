@@ -137,7 +137,7 @@ const handleSelect = (item, option) => {
   emit('command', { item, argument: value, option });
   item.selectedValue.value = option.key;
 
-  if (option?.label) {
+  if (option?.label && !item.hideLabel?.value) {
     item.label.value = option.label;
   }
 };

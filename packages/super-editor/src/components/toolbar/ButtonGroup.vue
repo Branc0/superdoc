@@ -136,6 +136,10 @@ const handleSelect = (item, option) => {
   const value = item.dropdownValueKey.value ? option[item.dropdownValueKey.value] : option.label;
   emit('command', { item, argument: value, option });
   item.selectedValue.value = option.key;
+
+  if (option?.label) {
+    item.label.value = option.label;
+  }
 };
 
 const dropdownOptions = (item) => {

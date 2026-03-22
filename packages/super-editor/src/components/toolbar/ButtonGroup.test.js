@@ -10,6 +10,7 @@ const createDropdownItem = (selectedKey) => ({
   isNarrow: ref(false),
   isWide: ref(false),
   disabled: ref(false),
+  label: ref(''),
   expand: ref(false),
   tooltip: ref('Test'),
   dropdownStyles: ref({}),
@@ -54,5 +55,18 @@ describe('ButtonGroup dropdownOptions selected class', () => {
 
     expect(options[1].type).toBeUndefined();
     expect(options[1].props.class).toBe('selected');
+  });
+});
+
+describe('ButtonGroup handleSelect', () => {
+  it('updates trigger label and selectedValue when an option with a label is selected', () => {
+    const item = createDropdownItem('');
+    const wrapper = mountWithItem(item);
+    const dropdown = wrapper.findComponent({ name: 'ToolbarDropdown' });
+
+    dropdown.vm.$emit('select', 'plain-match', { key: 'plain-match', label: 'Plain option' });
+
+    expect(item.label.value).toBe('Plain option');
+    expect(item.selectedValue.value).toBe('plain-match');
   });
 });

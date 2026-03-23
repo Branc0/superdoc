@@ -12,6 +12,7 @@ const SUPERDOC_PACKAGES = [
   'packages/ai',
   'packages/word-layout',
   'packages/preset-geometry',
+  'pnpm-workspace.yaml',
 ]
 
 Object.keys(require.cache)

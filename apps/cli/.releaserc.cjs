@@ -17,6 +17,7 @@ require('../../scripts/semantic-release/patch-commit-filter.cjs')([
   'packages/ai',
   'packages/word-layout',
   'packages/preset-geometry',
+  'pnpm-workspace.yaml',
 ]);
 
 const branch = process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_BRANCH;

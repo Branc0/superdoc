@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - 'apps/mcp/**'
+      - 'pnpm-workspace.yaml'
       - '!**/*.md'
   workflow_dispatch:
 

@@ -15,6 +15,7 @@ on:
       - 'packages/ai/**'
       - 'packages/word-layout/**'
       - 'packages/preset-geometry/**'
+      - 'pnpm-workspace.yaml'
       - '!**/*.md'
   workflow_dispatch:
 

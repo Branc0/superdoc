@@ -20,6 +20,7 @@ on:
       - 'packages/word-layout/**'
       - 'packages/preset-geometry/**'
       - 'scripts/semantic-release/**'
+      - 'pnpm-workspace.yaml'
       - '!**/*.md'
   workflow_dispatch:
 

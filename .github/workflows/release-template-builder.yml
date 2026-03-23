@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - 'packages/template-builder/**'
+      - 'pnpm-workspace.yaml'
       - '!**/*.md'
   workflow_dispatch:
 

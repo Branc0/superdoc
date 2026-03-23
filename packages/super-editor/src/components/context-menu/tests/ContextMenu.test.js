@@ -294,10 +294,7 @@ describe('ContextMenu.vue', () => {
       expect(moveCursorToMouseEvent).not.toHaveBeenCalled();
     });
 
-    it('should not move cursor when right-click happens outside a range selection', async () => {
-      // When a range selection exists, the context menu preserves it — coordinate-based
-      // hit testing in presentation mode can misreport whether the click is inside the
-      // selection, which would collapse it unexpectedly.
+    it('should move cursor when right-click happens outside the active selection', async () => {
       mount(ContextMenu, { props: mockProps });
 
       const { moveCursorToMouseEvent } = await import('../../cursor-helpers.js');
@@ -316,7 +313,7 @@ describe('ContextMenu.vue', () => {
 
       await contextMenuHandler(rightClickEvent);
 
-      expect(moveCursorToMouseEvent).not.toHaveBeenCalled();
+      expect(moveCursorToMouseEvent).toHaveBeenCalledWith(rightClickEvent, mockEditor);
     });
 
     it('should allow native context menu when modifier is pressed', async () => {

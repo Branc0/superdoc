@@ -296,14 +296,21 @@ const handleRightClick = async (event) => {
 
   event.preventDefault();
 
-  // Update cursor position to the right-click location before opening context menu.
-  // When the user has a range selection, keep it — coordinate-based hit testing
-  // in presentation mode can misreport whether the click is inside the selection,
-  // which would collapse it unexpectedly.
+  // Update cursor position to the right-click location before opening context menu,
+  // unless the click lands inside an active selection (keep selection intact).
   const editorState = props.editor?.state;
   const hasRangeSelection = editorState?.selection?.from !== editorState?.selection?.to;
+  let isClickInsideSelection = false;
 
-  if (!hasRangeSelection) {
+  if (hasRangeSelection && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+    const hit = props.editor?.posAtCoords?.({ left: event.clientX, top: event.clientY });
+    if (typeof hit?.pos === 'number') {
+      const { from, to } = editorState.selection;
+      isClickInsideSelection = hit.pos >= from && hit.pos <= to;
+    }
+  }
+
+  if (!isClickInsideSelection) {
     moveCursorToMouseEvent(event, props.editor);
   }
 

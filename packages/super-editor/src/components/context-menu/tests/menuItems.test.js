@@ -567,16 +567,12 @@ describe('menuItems.js', () => {
   });
 
   describe('getItems - paste action behavior', () => {
-    it('should prefer pasteText over pasteHTML when both html and text are available', async () => {
-      // When plain text is available, the paste action prefers view.pasteText
-      // because Chromium wraps writeText() output in HTML, which routes through
-      // handleHtmlPaste and strips leading/trailing spaces.
+    it('should not force plain-text insert when HTML paste is unhandled', async () => {
       const insertContent = vi.fn();
       mockEditor = createMockEditor({
         commands: { insertContent },
       });
       mockEditor.view.dom.focus = vi.fn();
-      mockEditor.view.pasteText = vi.fn();
       mockEditor.view.pasteHTML = vi.fn();
       mockContext = createMockContext({
         editor: mockEditor,
@@ -597,14 +593,12 @@ describe('menuItems.js', () => {
       expect(pasteAction).toBeTypeOf('function');
       await pasteAction(mockEditor);
 
-      // Passes empty html to handleClipboardPaste for URL detection only
       expect(clipboardMocks.handleClipboardPaste).toHaveBeenCalledWith(
         { editor: mockEditor, view: mockEditor.view },
-        '',
+        '<p>word html</p>',
         'word html',
       );
-      expect(mockEditor.view.pasteText).toHaveBeenCalledWith('word html', expect.any(Object));
-      expect(mockEditor.view.pasteHTML).not.toHaveBeenCalled();
+      expect(mockEditor.view.pasteHTML).toHaveBeenCalledWith('<p>word html</p>', expect.any(Object));
       expect(insertContent).not.toHaveBeenCalled();
     });
 
@@ -637,15 +631,11 @@ describe('menuItems.js', () => {
       expect(insertContent).not.toHaveBeenCalled();
     });
 
-    it('should not paste when view has no pasteText and handleClipboardPaste returns false', async () => {
-      // When pasteText is unavailable and URL detection returns false,
-      // the text branch has no further action. The code does not fall
-      // back to insertContent for the text branch.
+    it('should fall back to insertContent when view has no pasteHTML or pasteText', async () => {
       const insertContent = vi.fn();
       mockEditor = createMockEditor({
         commands: { insertContent },
       });
-      mockEditor.view.dom.focus = vi.fn();
       // No pasteHTML or pasteText on view
       delete mockEditor.view.pasteHTML;
       delete mockEditor.view.pasteText;
@@ -667,13 +657,7 @@ describe('menuItems.js', () => {
 
       await pasteAction(mockEditor);
 
-      expect(clipboardMocks.handleClipboardPaste).toHaveBeenCalledWith(
-        { editor: mockEditor, view: mockEditor.view },
-        '',
-        'fallback text',
-      );
-      // No pasteText available, URL detection returned false — nothing else happens
-      expect(insertContent).not.toHaveBeenCalled();
+      expect(insertContent).toHaveBeenCalledWith('fallback text', { contentType: 'text' });
     });
   });
 

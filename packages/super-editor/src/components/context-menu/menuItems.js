@@ -300,14 +300,19 @@ export function getItems(context, customItems = [], includeDefaultItems = true) 
           label: TEXTS.paste,
           icon: ICONS.paste,
           isDefault: true,
-          action: async (editor, context) => {
+          action: async (editor) => {
             const { view } = editor ?? {};
             if (!view) return;
-            // Use the selection captured when the context menu opened — the
-            // right-click handler may have collapsed a range selection via
-            // moveCursorToMouseEvent before this action runs.
-            const savedFrom = context?.selectionStart ?? view.state.selection.from;
-            const savedTo = context?.selectionEnd ?? view.state.selection.to;
+            // Save the current selection before focusing. When the context menu
+            // is open, its hidden search input holds focus, so the PM editor's
+            // contenteditable is blurred. A raw `view.dom.focus()` would restart
+            // ProseMirror's DOMObserver which reads the stale browser selection
+            // (collapsed at the document start) and overwrites the PM state.
+            // Using `view.focus()` (ProseMirror-aware) prevents this by writing
+            // the PM selection to the DOM before restarting the observer. We also
+            // save/restore as a safety net against async drift during clipboard reads.
+            const savedFrom = view.state.selection.from;
+            const savedTo = view.state.selection.to;
             view.focus();
             const { html, text } = await readClipboardRaw();
             // Restore selection after the async gap — ProseMirror's DOMObserver
@@ -323,20 +328,22 @@ export function getItems(context, customItems = [], includeDefaultItems = true) 
                 view.dispatch(tr.setSelection(SelectionType.create(doc, safeFrom, safeTo)));
               }
             }
-            // When plain text is available, prefer view.pasteText — it preserves
-            // whitespace correctly. Chromium wraps writeText() output in HTML,
-            // which routes through handleHtmlPaste and strips leading/trailing spaces.
-            // Still run handleClipboardPaste for URL detection (passes empty html
-            // so it hits the 'plain-text' branch).
-            if (text) {
-              const urlHandled = handleClipboardPaste({ editor, view }, '', text);
-              if (!urlHandled && typeof view.pasteText === 'function') {
-                view.pasteText(text, createPasteEventShim({ html: '', text }));
+            const handled = handleClipboardPaste({ editor, view }, html, text);
+            if (!handled) {
+              const pasteEvent = createPasteEventShim({ html, text });
+
+              if (html && typeof view.pasteHTML === 'function') {
+                view.pasteHTML(html, pasteEvent);
+                return;
               }
-            } else if (html) {
-              const handled = handleClipboardPaste({ editor, view }, html, '');
-              if (!handled && typeof view.pasteHTML === 'function') {
-                view.pasteHTML(html, createPasteEventShim({ html, text: '' }));
+
+              if (text && typeof view.pasteText === 'function') {
+                view.pasteText(text, pasteEvent);
+                return;
+              }
+
+              if (text && editor.commands?.insertContent) {
+                editor.commands.insertContent(text, { contentType: 'text' });
               }
             }
           },

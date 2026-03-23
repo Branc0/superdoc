@@ -1174,7 +1174,6 @@ async function measureParagraphBlock(block: ParagraphBlock, maxWidth: number): P
     if (pendingLeader) {
       const effectiveIndent = lines.length === 0 ? indentLeft + rawFirstLineOffset : indentLeft;
       pendingLeader.to = startX + effectiveIndent;
-      pendingLeader = null;
     }
 
     currentLine.width = roundValue(startX);

@@ -323,22 +323,20 @@ export function getItems(context, customItems = [], includeDefaultItems = true) 
                 view.dispatch(tr.setSelection(SelectionType.create(doc, safeFrom, safeTo)));
               }
             }
-            const handled = handleClipboardPaste({ editor, view }, html, text);
-            if (!handled) {
-              const pasteEvent = createPasteEventShim({ html, text });
-
-              if (html && typeof view.pasteHTML === 'function') {
-                view.pasteHTML(html, pasteEvent);
-                return;
+            // When plain text is available, prefer view.pasteText — it preserves
+            // whitespace correctly. Chromium wraps writeText() output in HTML,
+            // which routes through handleHtmlPaste and strips leading/trailing spaces.
+            // Still run handleClipboardPaste for URL detection (passes empty html
+            // so it hits the 'plain-text' branch).
+            if (text) {
+              const urlHandled = handleClipboardPaste({ editor, view }, '', text);
+              if (!urlHandled && typeof view.pasteText === 'function') {
+                view.pasteText(text, createPasteEventShim({ html: '', text }));
               }
-
-              if (text && typeof view.pasteText === 'function') {
-                view.pasteText(text, pasteEvent);
-                return;
-              }
-
-              if (text && editor.commands?.insertContent) {
-                editor.commands.insertContent(text, { contentType: 'text' });
+            } else if (html) {
+              const handled = handleClipboardPaste({ editor, view }, html, '');
+              if (!handled && typeof view.pasteHTML === 'function') {
+                view.pasteHTML(html, createPasteEventShim({ html, text: '' }));
               }
             }
           },

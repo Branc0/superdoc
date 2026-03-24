@@ -80,6 +80,15 @@ Or use the CDN:
 
 For all available options and events, see the [documentation](https://docs.superdoc.dev) or [SuperDoc.js](packages/superdoc/src/core/SuperDoc.js).
 
+### Using an AI coding agent?
+
+Set up your project for AI agents and configure the MCP server:
+
+```bash
+npx @superdoc-dev/create              # generates AGENTS.md for your framework
+claude mcp add superdoc -- npx @superdoc-dev/mcp   # connect agent to DOCX files
+```
+
 ## Features
 
 - **Real DOCX, not rich text** — Built on OOXML. Real pagination, section breaks, headers/footers. Not a contenteditable wrapper with export bolted on.

@@ -509,6 +509,7 @@ function resolveLinePosition(
 
   const spanStart = Number(targetEl.dataset.pmStart ?? 'NaN');
   const spanEnd = Number(targetEl.dataset.pmEnd ?? 'NaN');
+  const targetRect = targetEl.getBoundingClientRect();
 
   log('Target element:', {
     tag: targetEl.tagName,
@@ -516,10 +517,7 @@ function resolveLinePosition(
     pmEnd: spanEnd,
     text: targetEl.textContent?.substring(0, 30),
     visibility: targetEl.style.visibility,
-    rect: (() => {
-      const r = targetEl.getBoundingClientRect();
-      return { left: r.left, right: r.right, width: r.width };
-    })(),
+    rect: { left: targetRect.left, right: targetRect.right, width: targetRect.width },
   });
 
   if (!Number.isFinite(spanStart) || !Number.isFinite(spanEnd)) {
@@ -529,8 +527,7 @@ function resolveLinePosition(
 
   const firstChild = targetEl.firstChild;
   if (!firstChild || firstChild.nodeType !== Node.TEXT_NODE || !firstChild.textContent) {
-    const elRect = targetEl.getBoundingClientRect();
-    const closerToLeft = Math.abs(viewX - elRect.left) <= Math.abs(viewX - elRect.right);
+    const closerToLeft = Math.abs(viewX - targetRect.left) <= Math.abs(viewX - targetRect.right);
     const snapPos = rtl ? (closerToLeft ? spanEnd : spanStart) : closerToLeft ? spanStart : spanEnd;
     log('Empty/non-text element, snapping to:', { closerToLeft, rtl, snapPos });
     return snapPos;

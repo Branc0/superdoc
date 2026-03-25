@@ -598,12 +598,12 @@ describe('DOM-based click-to-position mapping', () => {
         </div>
       `;
 
-      // LTR version of this test (line 279) expects 5 or 10.
-      // In RTL with a zero-sized rect the "closer to left" check resolves to
-      // spanEnd (10) instead of spanStart (5).
+      // In JSDOM all rects are zero-sized, so viewX (1) >= visualRight (0) triggers
+      // the right-boundary snap which returns lineStart (5) for RTL.
+      // The LTR counterpart ('handles empty text nodes gracefully') returns lineEnd (10).
       const spanRect = container.querySelector('span')!.getBoundingClientRect();
       const result = clickToPositionDom(container, spanRect.left + 1, spanRect.top + 1);
-      expect(result === 5 || result === 10).toBe(true);
+      expect(result).toBe(5);
     });
   });
 

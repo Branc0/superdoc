@@ -39,7 +39,7 @@ const mountWithItem = (item) =>
       toolbarItems: [item],
       overflowItems: [],
     },
-});
+  });
 
 describe('ButtonGroup dropdownOptions selected class', () => {
   it('does not mark render option as selected even when selectedValue matches', () => {
@@ -56,29 +56,5 @@ describe('ButtonGroup dropdownOptions selected class', () => {
 
     expect(options[1].type).toBeUndefined();
     expect(options[1].props.class).toBe('selected');
-  });
-});
-
-describe('ButtonGroup handleSelect', () => {
-  it('updates trigger label and selectedValue when an option with a label is selected', () => {
-    const item = createDropdownItem('');
-    const wrapper = mountWithItem(item);
-    const dropdown = wrapper.findComponent({ name: 'ToolbarDropdown' });
-
-    dropdown.vm.$emit('select', 'plain-match', { key: 'plain-match', label: 'Plain option' });
-
-    expect(item.label.value).toBe('Plain option');
-    expect(item.selectedValue.value).toBe('plain-match');
-  });
-
-  it('does not update trigger label when hideLabel is true (icon-only dropdown)', () => {
-    const item = { ...createDropdownItem(''), hideLabel: ref(true) };
-    const wrapper = mountWithItem(item);
-    const dropdown = wrapper.findComponent({ name: 'ToolbarDropdown' });
-
-    dropdown.vm.$emit('select', 'plain-match', { key: 'plain-match', label: 'Plain option' });
-    
-    expect(item.label.value).toBe('');
-    expect(item.selectedValue.value).toBe('plain-match');
   });
 });

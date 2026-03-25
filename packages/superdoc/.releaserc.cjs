@@ -1,5 +1,6 @@
 /* eslint-env node */
-const path = require('path')
+const path = require('path');
+
 
 /*
  * Commit filter: superdoc bundles multiple sub-packages, so git log must
@@ -12,6 +13,7 @@ const SUPERDOC_PACKAGES = [
   'packages/ai',
   'packages/word-layout',
   'packages/preset-geometry',
+  'pnpm-workspace.yaml',
 ]
 
 Object.keys(require.cache)

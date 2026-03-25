@@ -10,13 +10,11 @@ const createDropdownItem = (selectedKey) => ({
   isNarrow: ref(false),
   isWide: ref(false),
   disabled: ref(false),
-  label: ref(''),
   expand: ref(false),
   tooltip: ref('Test'),
   dropdownStyles: ref({}),
   dropdownValueKey: ref('key'),
   selectedValue: ref(selectedKey),
-  hideLabel: ref(false),
   attributes: ref({ ariaLabel: 'Test dropdown' }),
   nestedOptions: ref([
     {

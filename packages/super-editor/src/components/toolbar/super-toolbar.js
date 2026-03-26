@@ -1138,11 +1138,9 @@ export class SuperToolbar extends EventEmitter {
     // until the next selection update (after the user clicks into the editor).
     if (!wasFocused && isMarkToggle) {
       this.pendingMarkCommands.push({ command, argument, item });
-      const shouldPassActivationAttrs = item?.command === 'setFontSize' || item?.command === 'setFontFamily';
-      if (shouldPassActivationAttrs) {
-        const itemName = item?.name?.value;
-        const activationAttrs = argument && itemName ? { [itemName]: argument } : {};
-        item?.activate?.(activationAttrs);
+      const labelAttr = item?.labelAttr?.value;
+      if (labelAttr && argument) {
+        item?.activate?.({ [labelAttr]: argument });
       } else {
         item?.activate?.();
       }

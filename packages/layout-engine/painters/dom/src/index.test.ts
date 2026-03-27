@@ -8,6 +8,7 @@ import type {
   ParagraphMeasure,
   FlowRunLink,
   Fragment,
+  ResolvedLayout,
   TableBlock,
   TableMeasure,
 } from '@superdoc/contracts';
@@ -3999,6 +4000,278 @@ describe('DomPainter', () => {
 
     const marker = mount.querySelector('.superdoc-list-marker');
     expect(marker?.textContent).toBe('1.');
+  });
+
+  it('preserves marker-adjusted list-item wrapper geometry during resolved incremental updates', () => {
+    const listBlock: FlowBlock = {
+      kind: 'list',
+      id: 'list-1',
+      listType: 'number',
+      items: [
+        {
+          id: 'item-1',
+          marker: { kind: 'number', text: '1.', level: 0, order: 1 },
+          paragraph: block,
+        },
+      ],
+    };
+
+    const listMeasure: Measure = {
+      kind: 'list',
+      items: [
+        {
+          itemId: 'item-1',
+          markerWidth: 30,
+          markerTextWidth: 18,
+          indentLeft: 0,
+          paragraph: measure as ParagraphMeasure,
+        },
+      ],
+      totalHeight: measure.totalHeight,
+    };
+
+    const initialLayout: Layout = {
+      pageSize: layout.pageSize,
+      pages: [
+        {
+          number: 1,
+          fragments: [
+            {
+              kind: 'list-item',
+              blockId: 'list-1',
+              itemId: 'item-1',
+              fromLine: 0,
+              toLine: 1,
+              x: 100,
+              y: 40,
+              width: 260,
+              markerWidth: 30,
+            },
+          ],
+        },
+      ],
+    };
+
+    const updatedLayout: Layout = {
+      pageSize: layout.pageSize,
+      pages: [
+        {
+          number: 1,
+          fragments: [
+            {
+              kind: 'list-item',
+              blockId: 'list-1',
+              itemId: 'item-1',
+              fromLine: 0,
+              toLine: 1,
+              x: 120,
+              y: 55,
+              width: 280,
+              markerWidth: 30,
+            },
+          ],
+        },
+      ],
+    };
+
+    const initialResolvedLayout: ResolvedLayout = {
+      version: 1,
+      flowMode: 'paginated',
+      pageGap: 0,
+      pages: [
+        {
+          id: 'page-0',
+          index: 0,
+          number: 1,
+          width: 400,
+          height: 500,
+          items: [
+            {
+              kind: 'fragment',
+              id: 'list-item:list-1:item-1:0:1',
+              pageIndex: 0,
+              x: 100,
+              y: 40,
+              width: 260,
+              height: 20,
+              fragmentKind: 'list-item',
+              blockId: 'list-1',
+              fragmentIndex: 0,
+            },
+          ],
+        },
+      ],
+    };
+
+    const updatedResolvedLayout: ResolvedLayout = {
+      version: 1,
+      flowMode: 'paginated',
+      pageGap: 0,
+      pages: [
+        {
+          id: 'page-0',
+          index: 0,
+          number: 1,
+          width: 400,
+          height: 500,
+          items: [
+            {
+              kind: 'fragment',
+              id: 'list-item:list-1:item-1:0:1',
+              pageIndex: 0,
+              x: 120,
+              y: 55,
+              width: 280,
+              height: 20,
+              fragmentKind: 'list-item',
+              blockId: 'list-1',
+              fragmentIndex: 0,
+            },
+          ],
+        },
+      ],
+    };
+
+    const painter = createDomPainter({ blocks: [listBlock], measures: [listMeasure] });
+
+    painter.setResolvedLayout?.(initialResolvedLayout);
+    painter.paint(initialLayout, mount);
+
+    const initialWrapper = mount.querySelector('.superdoc-fragment-list-item') as HTMLElement;
+    expect(initialWrapper.style.left).toBe('70px');
+    expect(initialWrapper.style.top).toBe('40px');
+    expect(initialWrapper.style.width).toBe('290px');
+
+    painter.setResolvedLayout?.(updatedResolvedLayout);
+    painter.paint(updatedLayout, mount);
+
+    const updatedWrapper = mount.querySelector('.superdoc-fragment-list-item') as HTMLElement;
+    expect(updatedWrapper).toBe(initialWrapper);
+    expect(updatedWrapper.style.left).toBe('90px');
+    expect(updatedWrapper.style.top).toBe('55px');
+    expect(updatedWrapper.style.width).toBe('310px');
+  });
+
+  it('applies resolved zIndex only to anchored media fragments', () => {
+    const anchoredDrawingBlock: FlowBlock = {
+      kind: 'drawing',
+      id: 'drawing-anchored',
+      drawingKind: 'vectorShape',
+      geometry: { width: 10, height: 10 },
+      anchor: { isAnchored: true },
+    };
+
+    const inlineDrawingBlock: FlowBlock = {
+      kind: 'drawing',
+      id: 'drawing-inline',
+      drawingKind: 'vectorShape',
+      geometry: { width: 10, height: 10 },
+      zIndex: 1,
+    };
+
+    const drawingMeasure: Measure = {
+      kind: 'drawing',
+      drawingKind: 'vectorShape',
+      width: 30,
+      height: 15,
+      scale: 1,
+      naturalWidth: 30,
+      naturalHeight: 15,
+      geometry: { width: 10, height: 10 },
+    };
+
+    const drawingLayout: Layout = {
+      pageSize: layout.pageSize,
+      pages: [
+        {
+          number: 1,
+          fragments: [
+            {
+              kind: 'drawing',
+              drawingKind: 'vectorShape',
+              blockId: 'drawing-anchored',
+              x: 30,
+              y: 40,
+              width: 30,
+              height: 15,
+              isAnchored: true,
+              zIndex: 7,
+              geometry: { width: 10, height: 10 },
+              scale: 1,
+            },
+            {
+              kind: 'drawing',
+              drawingKind: 'vectorShape',
+              blockId: 'drawing-inline',
+              x: 30,
+              y: 80,
+              width: 30,
+              height: 15,
+              zIndex: 1,
+              geometry: { width: 10, height: 10 },
+              scale: 1,
+            },
+          ],
+        },
+      ],
+    };
+
+    const resolvedLayout: ResolvedLayout = {
+      version: 1,
+      flowMode: 'paginated',
+      pageGap: 0,
+      pages: [
+        {
+          id: 'page-0',
+          index: 0,
+          number: 1,
+          width: 400,
+          height: 500,
+          items: [
+            {
+              kind: 'fragment',
+              id: 'drawing:drawing-anchored:30:40',
+              pageIndex: 0,
+              x: 30,
+              y: 40,
+              width: 30,
+              height: 15,
+              zIndex: 7,
+              fragmentKind: 'drawing',
+              blockId: 'drawing-anchored',
+              fragmentIndex: 0,
+            },
+            {
+              kind: 'fragment',
+              id: 'drawing:drawing-inline:30:80',
+              pageIndex: 0,
+              x: 30,
+              y: 80,
+              width: 30,
+              height: 15,
+              zIndex: 1,
+              fragmentKind: 'drawing',
+              blockId: 'drawing-inline',
+              fragmentIndex: 1,
+            },
+          ],
+        },
+      ],
+    };
+
+    const painter = createDomPainter({
+      blocks: [anchoredDrawingBlock, inlineDrawingBlock],
+      measures: [drawingMeasure, drawingMeasure],
+    });
+
+    painter.setResolvedLayout?.(resolvedLayout);
+    painter.paint(drawingLayout, mount);
+
+    const anchoredDrawingEl = mount.querySelector('[data-block-id="drawing-anchored"]') as HTMLElement;
+    const inlineDrawingEl = mount.querySelector('[data-block-id="drawing-inline"]') as HTMLElement;
+
+    expect(anchoredDrawingEl.style.zIndex).toBe('7');
+    expect(inlineDrawingEl.style.zIndex).toBe('');
   });
 
   it('applies run-level decorations and hyperlinks', () => {

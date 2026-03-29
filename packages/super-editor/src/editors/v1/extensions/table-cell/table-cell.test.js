@@ -34,4 +34,11 @@ describe('TableCell verticalAlign renderDOM', () => {
       left: expect.closeTo(6.67, 3),
     });
   });
+
+  it('parses vertical-align from inline td style', () => {
+    const td = document.createElement('td');
+    td.style.verticalAlign = 'middle';
+
+    expect(attributes.verticalAlign.parseDOM(td)).toBe('center');
+  });
 });

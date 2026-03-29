@@ -20,7 +20,7 @@ describe('TableCell verticalAlign renderDOM', () => {
     const td = document.createElement('td');
     td.style.backgroundColor = 'rgb(255, 255, 0)';
 
-    expect(attributes.background.parseDOM(td)).toEqual({ color: 'ffff00' });
+    expect(attributes.background.parseDOM(td)).toEqual({ color: '#ffff00' });
   });
 
   it('parses padding into cellMargins from inline td style', () => {
@@ -28,10 +28,10 @@ describe('TableCell verticalAlign renderDOM', () => {
     td.style.padding = '5pt';
 
     expect(attributes.cellMargins.parseDOM(td)).toEqual({
-      top: expect.closeTo(6.67, 3),
-      right: expect.closeTo(6.67, 3),
-      bottom: expect.closeTo(6.67, 3),
-      left: expect.closeTo(6.67, 3),
+      top: 7,
+      right: 7,
+      bottom: 7,
+      left: 7,
     });
   });
 

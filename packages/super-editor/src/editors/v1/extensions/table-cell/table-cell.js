@@ -40,6 +40,7 @@
 import { Node } from '@core/Node.js';
 import { Attribute } from '@core/Attribute.js';
 import { cssColorToHex } from '@core/utilities/cssColorToHex.js';
+import { parseCellMargins } from './helpers/parseCellMargins.js';
 import { renderCellBorderStyle } from './helpers/renderCellBorderStyle.js';
 
 /**
@@ -178,6 +179,7 @@ export const TableCell = Node.create({
       },
 
       cellMargins: {
+        parseDOM: (element) => parseCellMargins(element),
         renderDOM({ cellMargins, borders }) {
           if (!cellMargins) return {};
           const sides = ['top', 'right', 'bottom', 'left'];

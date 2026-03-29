@@ -39,6 +39,7 @@
 
 import { Node } from '@core/Node.js';
 import { Attribute } from '@core/Attribute.js';
+import { cssColorToHex } from '@core/utilities/cssColorToHex.js';
 import { renderCellBorderStyle } from './helpers/renderCellBorderStyle.js';
 
 /**
@@ -154,6 +155,11 @@ export const TableCell = Node.create({
       },
 
       background: {
+        parseDOM: (element) => {
+          const color = cssColorToHex(element.style?.backgroundColor);
+          if (!color) return null;
+          return { color };
+        },
         renderDOM({ background }) {
           if (!background) return {};
           // @ts-expect-error - background is known to be an object at runtime

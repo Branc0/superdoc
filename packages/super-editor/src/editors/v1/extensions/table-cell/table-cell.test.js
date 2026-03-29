@@ -15,4 +15,11 @@ describe('TableCell verticalAlign renderDOM', () => {
       style: 'vertical-align: bottom',
     });
   });
+
+  it('parses background color from inline td style', () => {
+    const td = document.createElement('td');
+    td.style.backgroundColor = 'rgb(255, 255, 0)';
+
+    expect(attributes.background.parseDOM(td)).toEqual({ color: 'ffff00' });
+  });
 });

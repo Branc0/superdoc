@@ -74,6 +74,20 @@ const resolveRenderedCellBorders = ({
   const touchesBottomBoundary = cellBounds.touchesBottomEdge || continuesOnNext;
 
   if (hasExplicitBorders) {
+    if (cellSpacingPx === 0) {
+      // Collapsed model: avoid double interior borders by using single-owner sides.
+      // Keep explicit top/left (or table fallbacks), and only render right/bottom on table edges.
+      return {
+        top: resolveTableBorderValue(cellBorders.top, touchesTopBoundary ? tableBorders.top : tableBorders.insideH),
+        right: cellBounds.touchesRightEdge ? resolveTableBorderValue(cellBorders.right, tableBorders.right) : undefined,
+        bottom: touchesBottomBoundary ? resolveTableBorderValue(cellBorders.bottom, tableBorders.bottom) : undefined,
+        left: resolveTableBorderValue(
+          cellBorders.left,
+          cellBounds.touchesLeftEdge ? tableBorders.left : tableBorders.insideV,
+        ),
+      };
+    }
+
     return {
       top: resolveTableBorderValue(cellBorders.top, touchesTopBoundary ? tableBorders.top : tableBorders.insideH),
       right: resolveTableBorderValue(cellBorders.right, cellBounds.touchesRightEdge ? tableBorders.right : undefined),

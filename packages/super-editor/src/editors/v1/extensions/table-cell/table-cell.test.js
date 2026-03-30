@@ -35,6 +35,11 @@ describe('TableCell verticalAlign renderDOM', () => {
     });
   });
 
+  it('returns null for cellMargins when no inline padding is present', () => {
+    const td = document.createElement('td');
+    expect(attributes.cellMargins.parseDOM(td)).toBeNull();
+  });
+
   it('parses vertical-align from inline td style', () => {
     const td = document.createElement('td');
     td.style.verticalAlign = 'middle';

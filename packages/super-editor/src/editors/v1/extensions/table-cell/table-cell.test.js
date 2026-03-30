@@ -41,4 +41,21 @@ describe('TableCell verticalAlign renderDOM', () => {
 
     expect(attributes.verticalAlign.parseDOM(td)).toBe('center');
   });
+
+  it('parses shorthand border into border attributes from inline td style', () => {
+    const td = document.createElement('td');
+    td.style.border = '0.681818pt solid rgb(128, 128, 128)';
+
+    expect(attributes.borders.parseDOM(td)).toEqual({
+      top: { val: 'single', size: 1, color: '#808080', style: 'solid' },
+      right: { val: 'single', size: 1, color: '#808080', style: 'solid' },
+      bottom: { val: 'single', size: 1, color: '#808080', style: 'solid' },
+      left: { val: 'single', size: 1, color: '#808080', style: 'solid' },
+    });
+  });
+
+  it('returns null when border style is absent', () => {
+    const td = document.createElement('td');
+    expect(attributes.borders.parseDOM(td)).toBeNull();
+  });
 });

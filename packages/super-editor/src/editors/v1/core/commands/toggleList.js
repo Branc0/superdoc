@@ -5,28 +5,67 @@ import { getResolvedParagraphProperties } from '@extensions/paragraph/resolvedPr
 import { isVisuallyEmptyParagraph } from './removeNumberingProperties.js';
 import { TextSelection } from 'prosemirror-state';
 
+function numFmtIsBullet(numFmt) {
+  if (numFmt == null) return false;
+  const v = String(numFmt).toLowerCase();
+  return v === 'bullet' || v === 'image' || v === 'none';
+}
+
+function getParagraphListKind(node, editor) {
+  const paraProps = getResolvedParagraphProperties(node);
+  if (!paraProps?.numberingProperties || !node.attrs.listRendering) {
+    return null;
+  }
+  const { numId, ilvl = 0 } = paraProps.numberingProperties;
+  const details = ListHelpers.getListDefinitionDetails({ numId, level: ilvl, editor });
+  const fmt = details?.listNumberingType ?? node.attrs.listRendering?.numberingType;
+  if (fmt == null) {
+    return null;
+  }
+  return numFmtIsBullet(fmt) ? 'bullet' : 'ordered';
+}
+
+function paragraphMatchesToggleListType(node, editor, listType) {
+  const kind = getParagraphListKind(node, editor);
+  if (!kind) return false;
+  if (listType === 'bulletList') return kind === 'bullet';
+  if (listType === 'orderedList') return kind === 'ordered';
+  return false;
+}
+
+/**
+ * Previous paragraph sibling of the anchor block: `doc.resolve(pos).nodeBefore` where `pos`
+ * is the gap before the first selected paragraph (or before the paragraph containing `from`).
+ *
+ * @param {import('prosemirror-model').Node} doc
+ * @param {number} from
+ * @param {Array<{ node: import('prosemirror-model').Node, pos: number }>} paragraphsInSelection
+ * @returns {import('prosemirror-model').Node | null}
+ */
+function getPrecedingParagraphForListReuse(doc, from, paragraphsInSelection) {
+  let pos = paragraphsInSelection.length > 0 ? paragraphsInSelection[0].pos : null;
+  if (pos == null && from > 0) {
+    const $from = doc.resolve(from);
+    for (let d = $from.depth; d > 0; d -= 1) {
+      if ($from.node(d).type.name === 'paragraph') {
+        pos = $from.before(d);
+        break;
+      }
+    }
+  }
+  if (pos == null) return null;
+  const nb = doc.resolve(pos).nodeBefore;
+  return nb?.type?.name === 'paragraph' ? nb : null;
+}
+
 export const toggleList =
   (listType) =>
   ({ editor, state, tr, dispatch }) => {
-    // 1. Find first paragraph in selection that is a list of the same type
-    let predicate;
-    if (listType === 'orderedList') {
-      predicate = (n) => {
-        const paraProps = getResolvedParagraphProperties(n);
-        return (
-          paraProps.numberingProperties && n.attrs.listRendering && n.attrs.listRendering.numberingType !== 'bullet'
-        );
-      };
-    } else if (listType === 'bulletList') {
-      predicate = (n) => {
-        const paraProps = getResolvedParagraphProperties(n);
-        return (
-          paraProps.numberingProperties && n.attrs.listRendering && n.attrs.listRendering.numberingType === 'bullet'
-        );
-      };
-    } else {
+    if (listType !== 'orderedList' && listType !== 'bulletList') {
       return false;
     }
+
+    const predicate = (n) => paragraphMatchesToggleListType(n, editor, listType);
     const { selection } = state;
     const { from, to } = selection;
     let firstListNode = null;
@@ -55,15 +94,10 @@ export const toggleList =
         hasNonListParagraphs = true;
       }
     }
-    // 2. If not found, check if the paragraph right before the selection is a list of the same type
     if (!firstListNode && from > 0) {
-      const $from = state.doc.resolve(from);
-      const parentIndex = $from.index(-1);
-      if (parentIndex > 0) {
-        const beforeNode = $from.node(-1).child(parentIndex - 1);
-        if (beforeNode && beforeNode.type.name === 'paragraph' && predicate(beforeNode)) {
-          firstListNode = beforeNode;
-        }
+      const beforeNode = getPrecedingParagraphForListReuse(state.doc, from, paragraphsInSelection);
+      if (beforeNode && predicate(beforeNode)) {
+        firstListNode = beforeNode;
       }
     }
     // 3. Resolve numbering properties

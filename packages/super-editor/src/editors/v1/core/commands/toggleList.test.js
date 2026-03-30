@@ -9,6 +9,7 @@ vi.mock('@helpers/list-numbering-helpers.js', () => ({
   ListHelpers: {
     getNewListId: vi.fn(),
     generateNewListDefinition: vi.fn(),
+    getListDefinitionDetails: vi.fn(() => null),
   },
 }));
 
@@ -32,26 +33,22 @@ const createParagraph = (attrs, pos) => ({
   pos,
 });
 
-const createState = (paragraphs, { from = 1, to = 10, beforeNode = null, parentIndex = 0 } = {}) => {
-  const parent = {
-    child: vi.fn(() => beforeNode),
-  };
-
-  return {
-    doc: {
-      nodesBetween: vi.fn((_from, _to, callback) => {
-        for (const { node, pos } of paragraphs) {
-          callback(node, pos);
-        }
-      }),
-      resolve: vi.fn(() => ({
-        index: () => parentIndex,
-        node: () => parent,
-      })),
-    },
-    selection: { from, to },
-  };
-};
+const createState = (paragraphs, { from = 1, to = 10, beforeNode = null } = {}) => ({
+  doc: {
+    nodesBetween: vi.fn((_from, _to, callback) => {
+      for (const { node, pos } of paragraphs) {
+        callback(node, pos);
+      }
+    }),
+    resolve: vi.fn((pos) => {
+      if (paragraphs.length > 0 && pos === paragraphs[0].pos) {
+        return { nodeBefore: beforeNode };
+      }
+      return { nodeBefore: null };
+    }),
+  },
+  selection: { from, to },
+});
 
 describe('toggleList', () => {
   let editor;
@@ -60,6 +57,7 @@ describe('toggleList', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    ListHelpers.getListDefinitionDetails.mockReturnValue(null);
     editor = { converter: {} };
     tr = {
       docChanged: false,
@@ -181,6 +179,33 @@ describe('toggleList', () => {
     expect(dispatch).toHaveBeenCalledWith(tr);
   });
 
+  it('does not borrow bullet numbering when applying ordered list to plain paragraphs below', () => {
+    ListHelpers.getNewListId.mockReturnValue(99);
+    const beforeNumbering = { numId: 7, ilvl: 0 };
+    const beforeNode = {
+      type: { name: 'paragraph' },
+      attrs: {
+        paragraphProperties: { numberingProperties: beforeNumbering },
+        // Missing numberingType used to be misread as "ordered" via `!== 'bullet'`
+        listRendering: { markerText: '•' },
+      },
+    };
+    ListHelpers.getListDefinitionDetails.mockReturnValue({ listNumberingType: 'bullet' });
+    const paragraphs = [createParagraph({ paragraphProperties: {} }, 4)];
+    const state = createState(paragraphs, { beforeNode, from: 4, to: 8 });
+    const handler = toggleList('orderedList');
+
+    const result = handler({ editor, state, tr, dispatch });
+
+    expect(result).toBe(true);
+    expect(ListHelpers.generateNewListDefinition).toHaveBeenCalledWith({
+      numId: 99,
+      listType: 'orderedList',
+      editor,
+    });
+    expect(dispatch).toHaveBeenCalledWith(tr);
+  });
+
   it('borrows numbering from the previous list paragraph when selection lacks one', () => {
     const beforeNumbering = { numId: 88, ilvl: 3, restart: true };
     const beforeNode = {
@@ -194,7 +219,7 @@ describe('toggleList', () => {
       createParagraph({ paragraphProperties: {} }, 4),
       createParagraph({ paragraphProperties: {} }, 8),
     ];
-    const state = createState(paragraphs, { beforeNode, parentIndex: 1 });
+    const state = createState(paragraphs, { beforeNode });
     const handler = toggleList('orderedList');
 
     const result = handler({ editor, state, tr, dispatch });

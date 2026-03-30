@@ -34,6 +34,8 @@ const STYLE_TOKEN_SET = new Set([
   'outset',
 ]);
 
+const STYLE_TOKEN_PATTERN = Array.from(STYLE_TOKEN_SET).join('|');
+
 /**
  * Parse border width token into pixel number.
  *
@@ -58,7 +60,7 @@ const parseBorderWidth = (value) => {
  * @returns {string | null}
  */
 const parseBorderStyle = (value) => {
-  const styleMatch = value.match(/(?:^|\s)(none|hidden|dotted|dashed|solid|double|groove|ridge|inset|outset)(?=\s|$)/i);
+  const styleMatch = value.match(new RegExp(`(?:^|\\s)(${STYLE_TOKEN_PATTERN})(?=\\s|$)`, 'i'));
   return styleMatch?.[1] ? styleMatch[1].toLowerCase() : null;
 };
 

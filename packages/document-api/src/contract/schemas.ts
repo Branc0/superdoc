@@ -127,7 +127,8 @@ function optionalTargetLocatorWithPayload(
         {
           ref: {
             type: 'string',
-            description: 'Handle ref string returned by a prior search/query result.',
+            description:
+              'Handle ref from superdoc_search result (pass handle.ref value directly). Preferred over building a target object.',
           },
           ...payloadProperties,
         },
@@ -767,6 +768,11 @@ const createParagraphSuccessSchema = objectSchema(
     paragraph: paragraphAddressSchema,
     insertionPoint: textAddressSchema,
     trackedChangeRefs: arraySchema(trackChangeRefSchema),
+    ref: {
+      type: 'string',
+      description:
+        'Ref handle for the created block. Pass directly to superdoc_format or superdoc_edit ref param without searching.',
+    },
   },
   ['success', 'paragraph', 'insertionPoint'],
 );
@@ -793,6 +799,11 @@ const createHeadingSuccessSchema = objectSchema(
     heading: headingAddressSchema,
     insertionPoint: textAddressSchema,
     trackedChangeRefs: arraySchema(trackChangeRefSchema),
+    ref: {
+      type: 'string',
+      description:
+        'Ref handle for the created block. Pass directly to superdoc_format or superdoc_edit ref param without searching.',
+    },
   },
   ['success', 'heading', 'insertionPoint'],
 );
@@ -1467,11 +1478,34 @@ const commentDomainItemSchema = discoveryItemSchema(
 
 const commentsListResultSchema = discoveryResultSchema(commentDomainItemSchema);
 
+const trackChangeWordRevisionIdsSchema: JsonSchema = {
+  ...objectSchema({
+    insert: {
+      type: 'string',
+      description:
+        'Raw imported Word OOXML revision ID (`w:id`) from a `<w:ins>` element when this logical change includes an insertion.',
+    },
+    delete: {
+      type: 'string',
+      description:
+        'Raw imported Word OOXML revision ID (`w:id`) from a `<w:del>` element when this logical change includes a deletion.',
+    },
+    format: {
+      type: 'string',
+      description:
+        'Raw imported Word OOXML revision ID (`w:id`) from a `<w:rPrChange>` element when this logical change includes a formatting revision.',
+    },
+  }),
+  description:
+    'Raw imported Word OOXML revision IDs (`w:id`) from the source document when available. This is provenance metadata, not the canonical SuperDoc tracked-change ID. Replacements may include both `insert` and `delete` IDs.',
+};
+
 const trackChangeInfoSchema = objectSchema(
   {
     address: trackedChangeAddressSchema,
     id: { type: 'string' },
     type: { enum: ['insert', 'delete', 'format'] },
+    wordRevisionIds: trackChangeWordRevisionIdsSchema,
     author: { type: 'string' },
     authorEmail: { type: 'string' },
     authorImage: { type: 'string' },
@@ -1485,6 +1519,7 @@ const trackChangeDomainItemSchema = discoveryItemSchema(
   {
     address: trackedChangeAddressSchema,
     type: { enum: ['insert', 'delete', 'format'] },
+    wordRevisionIds: trackChangeWordRevisionIdsSchema,
     author: { type: 'string' },
     authorEmail: { type: 'string' },
     authorImage: { type: 'string' },
@@ -3036,8 +3071,14 @@ const operationSchemas: Record<OperationId, OperationSchemaSet> = {
               fontFamily: { type: 'string', description: 'Font family from first text run.' },
               fontSize: { type: 'number', description: 'Font size from first text run.' },
               bold: { type: 'boolean', description: 'True if text is bold.' },
+              color: { type: 'string', description: "Text color when explicitly set (e.g. '#000000')." },
               alignment: { type: 'string', description: 'Paragraph alignment.' },
               headingLevel: { type: 'number', description: 'Heading level (1-6).' },
+              ref: {
+                type: 'string',
+                description:
+                  'Ref handle for this block. Pass directly to superdoc_format or superdoc_edit ref param. Only present for non-empty blocks.',
+              },
             },
             ['ordinal', 'nodeId', 'nodeType'],
           ),

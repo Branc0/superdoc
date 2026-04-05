@@ -441,6 +441,76 @@ describe('DomPainter', () => {
     expect(lines[1].style.wordSpacing).toBe('');
   });
 
+  it('skips justify for lines with manual tab runs but no explicit segment positions', () => {
+    const tabBlock: FlowBlock = {
+      kind: 'paragraph',
+      id: 'tab-justify-block',
+      runs: [
+        { text: '1.', fontFamily: 'Arial', fontSize: 16 },
+        { kind: 'tab', text: '\t', width: 48 },
+        { text: 'a b c d', fontFamily: 'Arial', fontSize: 16 },
+      ],
+      attrs: { alignment: 'justify' },
+    };
+
+    const tabMeasure: Measure = {
+      kind: 'paragraph',
+      lines: [
+        {
+          fromRun: 0,
+          fromChar: 0,
+          toRun: 2,
+          toChar: 7,
+          width: 60,
+          maxWidth: 100,
+          ascent: 12,
+          descent: 4,
+          lineHeight: 20,
+          // No segments with x — this is the "manual tab without segments" case
+        },
+        {
+          fromRun: 2,
+          fromChar: 7,
+          toRun: 2,
+          toChar: 7,
+          width: 0,
+          ascent: 12,
+          descent: 4,
+          lineHeight: 20,
+        },
+      ],
+      totalHeight: 40,
+    };
+
+    const tabLayout: Layout = {
+      pageSize: { w: 200, h: 200 },
+      pages: [
+        {
+          number: 1,
+          fragments: [
+            {
+              kind: 'para',
+              blockId: 'tab-justify-block',
+              fromLine: 0,
+              toLine: 2,
+              x: 0,
+              y: 0,
+              width: 100,
+            },
+          ],
+        },
+      ],
+    };
+
+    const painter = createTestPainter({ blocks: [tabBlock], measures: [tabMeasure] });
+    painter.paint(tabLayout, mount);
+
+    const lines = Array.from(mount.querySelectorAll('.superdoc-line')) as HTMLElement[];
+    expect(lines.length).toBeGreaterThanOrEqual(1);
+    // Manual tab without explicit segment positions should skip justify
+    expect(lines[0].style.wordSpacing).toBe('');
+  });
+
   it('justifies last visible line when paragraph ends with lineBreak', () => {
     // When a paragraph ends with <w:br/> (lineBreak), the visible text before the break
     // should still be justified because the "last line" is the empty line after the break.
@@ -3002,6 +3072,262 @@ describe('DomPainter', () => {
     expect(snapshot?.formatVersion).toBe(1);
     expect(snapshot?.pageCount).toBe(1);
     expect(snapshot?.lineCount).toBeGreaterThan(0);
+  });
+
+  it('captures annotation, structured content, and image identity entities in the paint snapshot', () => {
+    const annotationBlock: FlowBlock = {
+      kind: 'paragraph',
+      id: 'annotation-snapshot',
+      runs: [
+        {
+          kind: 'fieldAnnotation',
+          variant: 'text',
+          displayLabel: 'Client Name',
+          fieldId: 'FIELD-1',
+          fieldType: 'text',
+          fieldColor: '#980043',
+          pmStart: 0,
+          pmEnd: 1,
+        },
+      ],
+    };
+
+    const annotationMeasure: Measure = {
+      kind: 'paragraph',
+      lines: [
+        {
+          fromRun: 0,
+          fromChar: 0,
+          toRun: 0,
+          toChar: 0,
+          width: 120,
+          ascent: 12,
+          descent: 4,
+          lineHeight: 20,
+        },
+      ],
+      totalHeight: 20,
+    };
+
+    const inlineSdtBlock: FlowBlock = {
+      kind: 'paragraph',
+      id: 'inline-sdt-snapshot',
+      runs: [
+        { text: 'Before ', fontFamily: 'Arial', fontSize: 16, pmStart: 1, pmEnd: 8 },
+        {
+          text: 'Client',
+          fontFamily: 'Arial',
+          fontSize: 16,
+          pmStart: 8,
+          pmEnd: 14,
+          sdt: {
+            type: 'structuredContent',
+            scope: 'inline',
+            id: 'SC-1',
+            tag: 'client_inline',
+            alias: 'Client Data',
+          },
+        },
+        {
+          text: ' Name',
+          fontFamily: 'Arial',
+          fontSize: 16,
+          pmStart: 14,
+          pmEnd: 19,
+          sdt: {
+            type: 'structuredContent',
+            scope: 'inline',
+            id: 'SC-1',
+            tag: 'client_inline',
+            alias: 'Client Data',
+          },
+        },
+        { text: ' after', fontFamily: 'Arial', fontSize: 16, pmStart: 19, pmEnd: 25 },
+      ],
+    };
+
+    const inlineSdtMeasure: Measure = {
+      kind: 'paragraph',
+      lines: [
+        {
+          fromRun: 0,
+          fromChar: 0,
+          toRun: 3,
+          toChar: 6,
+          width: 220,
+          ascent: 12,
+          descent: 4,
+          lineHeight: 20,
+        },
+      ],
+      totalHeight: 20,
+    };
+
+    const blockSdtBlock: FlowBlock = {
+      kind: 'paragraph',
+      id: 'block-sdt-snapshot',
+      runs: [{ text: 'Block SDT', fontFamily: 'Arial', fontSize: 16, pmStart: 20, pmEnd: 29 }],
+      attrs: {
+        sdt: {
+          type: 'structuredContent',
+          scope: 'block',
+          id: 'scb-snapshot-1',
+          alias: 'Snapshot Block',
+        },
+      },
+    };
+
+    const blockSdtMeasure: Measure = {
+      kind: 'paragraph',
+      lines: [
+        {
+          fromRun: 0,
+          fromChar: 0,
+          toRun: 0,
+          toChar: 9,
+          width: 140,
+          ascent: 12,
+          descent: 4,
+          lineHeight: 20,
+        },
+      ],
+      totalHeight: 20,
+    };
+
+    const inlineImageBlock: FlowBlock = {
+      kind: 'paragraph',
+      id: 'snapshot-inline-image',
+      runs: [
+        {
+          kind: 'image',
+          src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          width: 80,
+          height: 60,
+          clipPath: 'inset(10% 20% 30% 40%)',
+          pmStart: 29,
+          pmEnd: 30,
+        },
+      ],
+    };
+
+    const inlineImageMeasure: Measure = {
+      kind: 'paragraph',
+      lines: [
+        {
+          fromRun: 0,
+          fromChar: 0,
+          toRun: 0,
+          toChar: 0,
+          width: 80,
+          ascent: 60,
+          descent: 0,
+          lineHeight: 60,
+        },
+      ],
+      totalHeight: 60,
+    };
+
+    const entityLayout: Layout = {
+      pageSize: { w: 400, h: 500 },
+      pages: [
+        {
+          number: 1,
+          fragments: [
+            {
+              kind: 'para',
+              blockId: 'annotation-snapshot',
+              fromLine: 0,
+              toLine: 1,
+              x: 20,
+              y: 30,
+              width: 180,
+              pmStart: 0,
+              pmEnd: 1,
+            },
+            {
+              kind: 'para',
+              blockId: 'inline-sdt-snapshot',
+              fromLine: 0,
+              toLine: 1,
+              x: 20,
+              y: 60,
+              width: 320,
+              pmStart: 1,
+              pmEnd: 25,
+            },
+            {
+              kind: 'para',
+              blockId: 'block-sdt-snapshot',
+              fromLine: 0,
+              toLine: 1,
+              x: 20,
+              y: 90,
+              width: 320,
+              pmStart: 20,
+              pmEnd: 29,
+            },
+            {
+              kind: 'para',
+              blockId: 'snapshot-inline-image',
+              fromLine: 0,
+              toLine: 1,
+              x: 20,
+              y: 120,
+              width: 80,
+              pmStart: 29,
+              pmEnd: 30,
+            },
+          ],
+        },
+      ],
+    };
+
+    const painter = createTestPainter({
+      blocks: [annotationBlock, inlineSdtBlock, blockSdtBlock, inlineImageBlock],
+      measures: [annotationMeasure, inlineSdtMeasure, blockSdtMeasure, inlineImageMeasure],
+    });
+
+    painter.paint(entityLayout, mount);
+
+    const snapshot = painter.getPaintSnapshot?.();
+    expect(snapshot).toBeTruthy();
+
+    expect(snapshot?.entities.annotations).toHaveLength(1);
+    expect(snapshot?.entities.annotations[0]).toMatchObject({
+      pageIndex: 0,
+      pmStart: 0,
+      pmEnd: 1,
+      fieldId: 'FIELD-1',
+      fieldType: 'text',
+      type: 'text',
+    });
+    expect(snapshot?.entities.annotations[0]?.element.classList.contains('annotation')).toBe(true);
+    expect(snapshot?.entities.annotations[0]?.element.dataset.displayLabel).toBe('Client Name');
+
+    expect(snapshot?.entities.structuredContentInlines).toHaveLength(1);
+    expect(snapshot?.entities.structuredContentInlines[0]).toMatchObject({
+      pageIndex: 0,
+      sdtId: 'SC-1',
+      pmStart: 8,
+      pmEnd: 19,
+    });
+
+    expect(snapshot?.entities.structuredContentBlocks).toHaveLength(1);
+    expect(snapshot?.entities.structuredContentBlocks[0]).toMatchObject({
+      pageIndex: 0,
+      sdtId: 'scb-snapshot-1',
+      pmStart: 20,
+      pmEnd: 29,
+    });
+
+    expect(snapshot?.entities.images).toHaveLength(1);
+    expect(snapshot?.entities.images[0]).toMatchObject({
+      pageIndex: 0,
+      kind: 'inline',
+      pmStart: 29,
+      pmEnd: 30,
+    });
+    expect(snapshot?.entities.images[0]?.element.classList.contains('superdoc-inline-image-clip-wrapper')).toBe(true);
   });
 
   it('uses actual page indices when collecting virtualized paint snapshots', () => {

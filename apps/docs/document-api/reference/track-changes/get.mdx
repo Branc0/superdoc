@@ -20,7 +20,7 @@ Retrieve a single tracked change by ID.
 
 ## Expected result
 
-Returns a TrackChangeInfo object with the change type, author, date, affected content, and source Word revision IDs when available.
+Returns a TrackChangeInfo object with the change type, author, date, affected content, and raw imported Word OOXML revision IDs (`w:id`) when available.
 
 ## Input fields
 
@@ -137,14 +137,18 @@ Returns a TrackChangeInfo object with the change type, author, date, affected co
     },
     "wordRevisionIds": {
       "additionalProperties": false,
+      "description": "Raw imported Word OOXML revision IDs (`w:id`) from the source document when available. This is provenance metadata, not the canonical SuperDoc tracked-change ID. Replacements may include both `insert` and `delete` IDs.",
       "properties": {
         "delete": {
+          "description": "Raw imported Word OOXML revision ID (`w:id`) from a `<w:del>` element when this logical change includes a deletion.",
           "type": "string"
         },
         "format": {
+          "description": "Raw imported Word OOXML revision ID (`w:id`) from a `<w:rPrChange>` element when this logical change includes a formatting revision.",
           "type": "string"
         },
         "insert": {
+          "description": "Raw imported Word OOXML revision ID (`w:id`) from a `<w:ins>` element when this logical change includes an insertion.",
           "type": "string"
         }
       },

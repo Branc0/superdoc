@@ -2215,7 +2215,7 @@ export const OPERATION_DEFINITIONS = {
     memberPath: 'trackChanges.list',
     description: 'List all tracked changes in the document.',
     expectedResult:
-      'Returns a TrackChangesListResult with tracked change entries, total count, and source Word revision IDs when available.',
+      'Returns a TrackChangesListResult with tracked change entries, total count, and raw imported Word OOXML revision IDs (`w:id`) when available.',
     requiresDocumentContext: true,
     metadata: readOperation({
       idempotency: 'idempotent',
@@ -2230,7 +2230,7 @@ export const OPERATION_DEFINITIONS = {
     memberPath: 'trackChanges.get',
     description: 'Retrieve a single tracked change by ID.',
     expectedResult:
-      'Returns a TrackChangeInfo object with the change type, author, date, affected content, and source Word revision IDs when available.',
+      'Returns a TrackChangeInfo object with the change type, author, date, affected content, and raw imported Word OOXML revision IDs (`w:id`) when available.',
     requiresDocumentContext: true,
     metadata: readOperation({
       idempotency: 'idempotent',

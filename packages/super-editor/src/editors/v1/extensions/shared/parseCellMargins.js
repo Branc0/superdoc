@@ -26,7 +26,7 @@ const parseSide = (sideValue) => {
 };
 
 /**
- * Parse cell margins from inline TD padding styles.
+ * Parse cell margins from inline TD/TH padding styles.
  *
  * @param {HTMLElement} element
  * @returns {CellMargins | null}

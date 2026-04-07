@@ -4,7 +4,7 @@ import { cssColorToHex } from '@core/utilities/cssColorToHex.js';
 import { halfPointToPixels } from '@core/super-converter/helpers.js';
 
 /**
- * Parsed cell border shape used by table cell parseDOM.
+ * Parsed cell border shape used by table cell / header parseDOM.
  * @typedef {Object} ParsedCellBorder
  * @property {'none' | 'single' | 'dashed' | 'dotted'} val
  * @property {number} size

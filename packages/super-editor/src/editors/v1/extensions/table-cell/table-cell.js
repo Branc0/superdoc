@@ -40,8 +40,9 @@
 import { Node } from '@core/Node.js';
 import { Attribute } from '@core/Attribute.js';
 import { cssColorToHex } from '@core/utilities/cssColorToHex.js';
-import { parseCellBorders } from './helpers/parseCellBorders.js';
-import { parseCellMargins } from './helpers/parseCellMargins.js';
+import { parseCellBorders } from '@extensions/shared/parseCellBorders.js';
+import { parseCellMargins } from '@extensions/shared/parseCellMargins.js';
+import { parseCellVerticalAlignFromStyle } from '@extensions/shared/parseCellVerticalAlign.js';
 import { renderCellBorderStyle } from './helpers/renderCellBorderStyle.js';
 
 /**
@@ -172,13 +173,7 @@ export const TableCell = Node.create({
       },
 
       verticalAlign: {
-        parseDOM: (element) => {
-          const value = element.style?.verticalAlign;
-          if (!value || typeof value !== 'string') return null;
-          const normalized = value.trim().toLowerCase();
-          if (normalized === 'middle') return 'center';
-          return normalized;
-        },
+        parseDOM: parseCellVerticalAlignFromStyle,
         renderDOM({ verticalAlign }) {
           if (!verticalAlign) return {};
           const style = `vertical-align: ${verticalAlign}`;

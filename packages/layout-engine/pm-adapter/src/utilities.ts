@@ -225,6 +225,24 @@ export const normalizeString = (value: unknown): string | undefined => {
 };
 
 /**
+ * Extracts image hyperlink metadata from a ProseMirror node attribute object.
+ *
+ * Accepts the raw `attrs.hyperlink` value and normalizes it to the shared
+ * `{ url, tooltip? }` shape used by ImageBlock and ImageRun. Empty or invalid
+ * URLs are dropped, and tooltip text is trimmed before inclusion.
+ */
+export const readImageHyperlink = (value: unknown): { url: string; tooltip?: string } | undefined => {
+  const hyperlink = isPlainObject(value) ? value : undefined;
+  const url = normalizeString(hyperlink?.url);
+  if (!url) {
+    return undefined;
+  }
+
+  const tooltip = normalizeString(hyperlink?.tooltip);
+  return tooltip ? { url, tooltip } : { url };
+};
+
+/**
  * Coerces a value to a number if possible.
  *
  * Accepts numbers and numeric strings. Returns undefined for invalid inputs.

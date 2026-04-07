@@ -361,6 +361,8 @@ export type ImageRun = {
   // OOXML image effects
   grayscale?: boolean; // Apply grayscale filter to image
   lum?: ImageLuminanceAdjustment; // DrawingML luminance adjustment from a:lum
+  /** Image hyperlink from OOXML a:hlinkClick. When set, clicking the image opens the URL. */
+  hyperlink?: { url: string; tooltip?: string };
 };
 
 export type BreakRun = {
@@ -635,6 +637,8 @@ export type ImageBlock = {
   rotation?: number; // Rotation angle in degrees
   flipH?: boolean; // Horizontal flip
   flipV?: boolean; // Vertical flip
+  /** Image hyperlink from OOXML a:hlinkClick. When set, clicking the image opens the URL. */
+  hyperlink?: { url: string; tooltip?: string };
 };
 
 export type DrawingKind = 'image' | 'vectorShape' | 'shapeGroup' | 'chart';

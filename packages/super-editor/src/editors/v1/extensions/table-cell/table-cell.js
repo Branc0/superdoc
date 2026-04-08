@@ -43,7 +43,7 @@ import { cssColorToHex } from '@core/utilities/cssColorToHex.js';
 import { parseCellBorders } from '@extensions/shared/parseCellBorders.js';
 import { parseCellMargins } from '@extensions/shared/parseCellMargins.js';
 import { parseCellVerticalAlignFromStyle } from '@extensions/shared/parseCellVerticalAlign.js';
-import { renderCellBorderStyle } from './helpers/renderCellBorderStyle.js';
+import { renderCellBorderStyle } from '@extensions/shared/renderCellBorderStyle.js';
 
 /**
  * Cell margins configuration

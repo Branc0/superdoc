@@ -14,7 +14,7 @@ describe('TableCell', () => {
       it('parses rgb() background to hex', () => {
         const td = document.createElement('td');
         td.style.backgroundColor = 'rgb(255, 255, 0)';
-        expect(attributes.background.parseDOM(td)).toEqual({ color: '#ffff00' });
+        expect(attributes.background.parseDOM(td)).toEqual({ color: 'ffff00' });
       });
 
       it('returns null when background is unset', () => {
@@ -40,6 +40,14 @@ describe('TableCell', () => {
           style: 'background-color: transparent',
         });
       });
+    });
+
+    it('parseDOM → renderDOM round-trips to valid CSS', () => {
+      const td = document.createElement('td');
+      td.style.backgroundColor = 'rgb(255, 255, 0)';
+      const parsed = attributes.background.parseDOM(td);
+      const { style } = attributes.background.renderDOM({ background: parsed });
+      expect(style).toBe('background-color: #ffff00');
     });
   });
 

@@ -124,9 +124,9 @@ describe('tableCell & tableHeader HTML paste integration', () => {
     `);
 
     expect(cells).toHaveLength(4);
-    expect(cells[0].attrs?.background).toEqual({ color: '#ffff00' });
-    expect(cells[1].attrs?.background).toEqual({ color: '#00ffff' });
-    expect(cells[2].attrs?.background).toEqual({ color: '#800080' });
+    expect(cells[0].attrs?.background).toEqual({ color: 'ffff00' });
+    expect(cells[1].attrs?.background).toEqual({ color: '00ffff' });
+    expect(cells[2].attrs?.background).toEqual({ color: '800080' });
     expect(cells[3].attrs?.background == null).toBe(true);
   });
 
@@ -185,7 +185,7 @@ describe('tableCell & tableHeader HTML paste integration', () => {
       bottom: 7,
       left: 7,
     });
-    expect(cells[0].attrs?.background).toEqual({ color: '#c8dcff' });
+    expect(cells[0].attrs?.background).toEqual({ color: 'c8dcff' });
     expect(cells[0].attrs?.verticalAlign).toBe('bottom');
 
     const hb = cells[0].attrs?.tableCellProperties?.borders;
@@ -230,7 +230,7 @@ describe('tableCell & tableHeader HTML paste integration', () => {
         'tableCell',
       ]);
 
-      expect(cells[0].attrs?.background).toEqual({ color: '#e6e6e6' });
+      expect(cells[0].attrs?.background).toEqual({ color: 'e6e6e6' });
       expect(cells[1].attrs?.cellMargins).toEqual({
         top: 6,
         right: 6,
@@ -262,7 +262,7 @@ describe('tableCell & tableHeader HTML paste integration', () => {
       expect(hBorder?.top).toMatchObject({ val: 'single', color: '#c80000' });
 
       expect(cells[1].attrs?.cellMargins?.top).toBe(7);
-      expect(cells[1].attrs?.background).toEqual({ color: '#00c8c8' });
+      expect(cells[1].attrs?.background).toEqual({ color: '00c8c8' });
 
       expect(cells[2].attrs?.cellMargins).toEqual({
         top: 2,
@@ -296,7 +296,7 @@ describe('tableCell & tableHeader HTML paste integration', () => {
       expect(cells).toHaveLength(7);
       expect(cells[0].type).toBe('tableHeader');
       expect(cells[1].type).toBe('tableHeader');
-      expect(cells[0].attrs?.background).toEqual({ color: '#6464c8' });
+      expect(cells[0].attrs?.background).toEqual({ color: '6464c8' });
       expect(cells[1].attrs?.background == null).toBe(true);
 
       expect(cells[2].type).toBe('tableHeader');
@@ -338,7 +338,7 @@ describe('tableCell & tableHeader HTML paste integration', () => {
 
       expect(cells[3].type).toBe('tableHeader');
       expect(cells[4].type).toBe('tableCell');
-      expect(cells[4].attrs?.background).toEqual({ color: '#fff0f0' });
+      expect(cells[4].attrs?.background).toEqual({ color: 'fff0f0' });
       expect(cells[5].type).toBe('tableCell');
     });
   });

@@ -161,7 +161,7 @@ export const TableCell = Node.create({
         parseDOM: (element) => {
           const color = cssColorToHex(element.style?.backgroundColor);
           if (!color) return null;
-          return { color };
+          return { color: color.replace(/^#/, '') };
         },
         renderDOM({ background }) {
           if (!background) return {};

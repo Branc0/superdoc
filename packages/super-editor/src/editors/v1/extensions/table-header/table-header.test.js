@@ -18,7 +18,7 @@ describe('TableHeader', () => {
       it('parses rgb() background to hex', () => {
         const th = document.createElement('th');
         th.style.backgroundColor = 'rgb(255, 255, 0)';
-        expect(attributes.background.parseDOM(th)).toEqual({ color: '#ffff00' });
+        expect(attributes.background.parseDOM(th)).toEqual({ color: 'ffff00' });
       });
 
       it('returns null when background is unset', () => {
@@ -43,6 +43,14 @@ describe('TableHeader', () => {
           style: 'background-color: transparent',
         });
       });
+    });
+
+    it('parseDOM → renderDOM round-trips to valid CSS', () => {
+      const th = document.createElement('th');
+      th.style.backgroundColor = 'rgb(255, 255, 0)';
+      const parsed = attributes.background.parseDOM(th);
+      const { style } = attributes.background.renderDOM({ background: parsed });
+      expect(style).toBe('background-color: #ffff00');
     });
   });
 
